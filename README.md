@@ -55,7 +55,7 @@ make run-kanban   # Kanban board
 
 ## Documentation
 
-Full documentation is at **[antoniocali.github.io/oat-latte](https://antoniocali.github.io/oat-latte/)**.
+Full documentation is at **[oat-latte.dev](https://oat-latte.dev)**.
 
 ## License
 

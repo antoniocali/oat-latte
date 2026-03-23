@@ -11,8 +11,8 @@ const config: Config = {
     v4: true,
   },
 
-  url: 'https://antoniocali.github.io',
-  baseUrl: '/oat-latte/',
+  url: 'https://oat-latte.dev',
+  baseUrl: '/',
 
   onBrokenLinks: 'throw',
   markdown: {
