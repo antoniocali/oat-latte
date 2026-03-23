@@ -1,0 +1,49 @@
+# Binaries
+/bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Compiled example binaries (built by go run / go build in repo root)
+/grocery
+/kanban
+/notes
+/tasklist
+
+# Agent skills
+.agents/
+
+# Build output
+dist/
+out/
+
+# Test cache and coverage
+*.test
+*.out
+coverage.html
+coverage.txt
+
+# Go workspace
+go.work
+go.work.sum
+
+# Dependency vendor directory (if not committed)
+vendor/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# OS files
+Thumbs.db

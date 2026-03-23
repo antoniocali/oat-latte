@@ -1,0 +1,410 @@
+/**
+ * oat-latte landing page — full black & white
+ * Thick 2px borders, IBM Plex Mono, pure #000 / #fff.
+ */
+
+/* ── page shell ──────────────────────────────────────────────────── */
+.page {
+  background: #fff;
+  min-height: 100vh;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  color: #000;
+}
+
+[data-theme='dark'] .page {
+  background: #000;
+  color: #fff;
+}
+
+/* ── hero ────────────────────────────────────────────────────────── */
+.hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 3.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 6rem 2rem 5rem;
+}
+
+.heroText {
+  flex: 0 0 auto;
+  max-width: 420px;
+}
+
+/* Logo image — shown once logo.png is dropped in */
+.heroLogo {
+  display: block;
+  height: 56px;
+  width: auto;
+  margin-bottom: 1.5rem;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #000;
+  border: 2px solid #000;
+  padding: 0.2em 0.7em;
+  margin-bottom: 1.4rem;
+}
+[data-theme='dark'] .badge {
+  color: #fff;
+  border-color: #fff;
+}
+
+.heroTitle {
+  font-size: clamp(2.8rem, 5vw, 4rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin: 0 0 1rem;
+  color: #000;
+}
+[data-theme='dark'] .heroTitle {
+  color: #fff;
+}
+
+.heroSub {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: #444;
+  margin: 0 0 2rem;
+}
+[data-theme='dark'] .heroSub {
+  color: #aaa;
+}
+
+.heroCta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+/* ── CTA buttons ─────────────────────────────────────────────────── */
+.ctaPrimary {
+  display: inline-block;
+  padding: 0.55em 1.4em;
+  background: #000;
+  color: #fff !important;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none !important;
+  letter-spacing: 0.04em;
+  border: 2px solid #000;
+  transition: background 0.12s, color 0.12s;
+}
+.ctaPrimary:hover {
+  background: #fff;
+  color: #000 !important;
+}
+[data-theme='dark'] .ctaPrimary {
+  background: #fff;
+  color: #000 !important;
+  border-color: #fff;
+}
+[data-theme='dark'] .ctaPrimary:hover {
+  background: #000;
+  color: #fff !important;
+}
+
+.ctaSecondary {
+  display: inline-block;
+  padding: 0.55em 1.4em;
+  background: transparent;
+  color: #000 !important;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none !important;
+  border: 2px solid #000;
+  transition: background 0.12s, color 0.12s;
+}
+.ctaSecondary:hover {
+  background: #000;
+  color: #fff !important;
+}
+[data-theme='dark'] .ctaSecondary {
+  color: #fff !important;
+  border-color: #fff;
+}
+[data-theme='dark'] .ctaSecondary:hover {
+  background: #fff;
+  color: #000 !important;
+}
+
+.ctaGhost {
+  display: inline-block;
+  padding: 0.55em 1.4em;
+  background: transparent;
+  color: #555 !important;
+  font-family: inherit;
+  font-size: 0.875rem;
+  text-decoration: none !important;
+  border: 2px solid #aaa;
+  transition: border-color 0.12s, color 0.12s;
+}
+.ctaGhost:hover {
+  border-color: #000;
+  color: #000 !important;
+}
+[data-theme='dark'] .ctaGhost {
+  color: #888 !important;
+  border-color: #555;
+}
+[data-theme='dark'] .ctaGhost:hover {
+  border-color: #fff;
+  color: #fff !important;
+}
+
+/* ── install strip ───────────────────────────────────────────────── */
+.installBlock {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: #f5f5f5;
+  border: 2px solid #000;
+  padding: 0.6em 1em;
+  font-size: 0.8rem;
+  overflow-x: auto;
+}
+[data-theme='dark'] .installBlock {
+  background: #111;
+  border-color: #fff;
+}
+
+.installPrompt {
+  color: #000;
+  font-weight: 700;
+  user-select: none;
+}
+[data-theme='dark'] .installPrompt {
+  color: #fff;
+}
+
+.installCmd {
+  color: #000;
+}
+[data-theme='dark'] .installCmd {
+  color: #fff;
+}
+
+.heroDemo {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* ── terminal widget ─────────────────────────────────────────────── */
+.terminal {
+  background: #fff;
+  border: 2px solid #000;
+  overflow: hidden;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  box-shadow: 4px 4px 0 #000;
+}
+[data-theme='dark'] .terminal {
+  background: #000;
+  border-color: #fff;
+  box-shadow: 4px 4px 0 #fff;
+}
+
+.terminalBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #000;
+  border-bottom: 2px solid #000;
+  padding: 0.5rem 0.75rem;
+}
+[data-theme='dark'] .terminalBar {
+  background: #111;
+  border-bottom-color: #fff;
+}
+
+.dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #555;
+  border: 1.5px solid #888;
+}
+
+.terminalTitle {
+  margin-left: 0.5rem;
+  color: #aaa;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+
+.terminalBody {
+  display: flex;
+  flex-direction: column;
+}
+
+.termLine {
+  padding: 0.1em 0.5em;
+  white-space: pre;
+  color: #555;
+  font-family: inherit;
+  overflow: hidden;
+}
+[data-theme='dark'] .termLine {
+  color: #888;
+}
+
+.lineHeader {
+  background: #000;
+  color: #fff;
+  font-weight: 700;
+  padding: 0.25em 0.5em;
+}
+
+.lineFooter {
+  background: #000;
+  color: #aaa;
+  font-size: 0.68rem;
+  padding: 0.25em 0.5em;
+}
+
+.lineDivider {
+  height: 0;
+  border-top: 1px solid #ddd;
+  padding: 0;
+  line-height: 1;
+}
+[data-theme='dark'] .lineDivider {
+  border-top-color: #333;
+}
+
+.lineActive {
+  background: #000;
+  color: #fff;
+}
+[data-theme='dark'] .lineActive {
+  background: #fff;
+  color: #000;
+}
+
+/* ── feature grid ────────────────────────────────────────────────── */
+.features {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 3rem 2rem 5rem;
+  border-top: 2px solid #000;
+}
+[data-theme='dark'] .features {
+  border-top-color: #fff;
+}
+
+.featuresGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0;
+}
+
+.featureCard {
+  padding: 2rem 1.75rem;
+  border: 2px solid #000;
+  margin: -2px 0 0 -2px;
+  transition: background 0.12s, color 0.12s;
+}
+[data-theme='dark'] .featureCard {
+  border-color: #fff;
+}
+
+.featureCard:hover {
+  background: #000;
+  color: #fff;
+}
+[data-theme='dark'] .featureCard:hover {
+  background: #fff;
+  color: #000;
+}
+
+.featureIcon {
+  display: block;
+  font-size: 1.4rem;
+  margin-bottom: 0.75rem;
+  font-style: normal;
+}
+
+.featureTitle {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: inherit;
+  margin: 0 0 0.6rem;
+  letter-spacing: 0.02em;
+  font-family: inherit;
+}
+
+.featureBody {
+  font-size: 0.82rem;
+  line-height: 1.65;
+  color: inherit;
+  opacity: 0.75;
+  margin: 0;
+}
+
+/* ── code sample ─────────────────────────────────────────────────── */
+.codeSample {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 3rem 2rem 6rem;
+  border-top: 2px solid #000;
+}
+[data-theme='dark'] .codeSample {
+  border-top-color: #fff;
+}
+
+.codeSampleHeading {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #000;
+  margin: 0 0 1.5rem;
+  letter-spacing: 0.02em;
+}
+[data-theme='dark'] .codeSampleHeading {
+  color: #fff;
+}
+
+.codeBlock {
+  background: #f5f5f5;
+  border: 2px solid #000;
+  box-shadow: 4px 4px 0 #000;
+  padding: 1.5rem;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.8rem;
+  line-height: 1.65;
+  color: #000;
+  overflow-x: auto;
+  margin: 0;
+  white-space: pre;
+}
+[data-theme='dark'] .codeBlock {
+  background: #111;
+  border-color: #fff;
+  box-shadow: 4px 4px 0 #fff;
+  color: #fff;
+}
+
+/* ── responsive ──────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .hero {
+    flex-direction: column;
+    padding: 4rem 1.5rem 3rem;
+  }
+  .heroText {
+    max-width: 100%;
+  }
+  .heroDemo {
+    width: 100%;
+  }
+  .terminal {
+    font-size: 0.62rem;
+  }
+}

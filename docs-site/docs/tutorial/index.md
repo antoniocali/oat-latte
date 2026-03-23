@@ -1,0 +1,593 @@
+---
+sidebar_position: 1
+title: "Tutorial: Task List"
+description: Build a fully working terminal task-list app from scratch, one step at a time.
+---
+
+# Tutorial: Task List
+
+This tutorial builds a real terminal app from scratch. By the end you will have a task list with:
+
+- a scrollable list of tasks
+- an "Add task" dialog with a text input
+- delete with confirmation
+- toast notifications
+- a status bar showing key hints
+
+Each step is self-contained and runnable. You can stop at any step and have a working program.
+
+---
+
+## What you will build
+
+```
+┌─ Tasks ──────────────────────────────────────────────────────────┐
+│  ▶  Buy groceries                                                 │
+│     Write tutorial                                                │
+│     Ship v0.1.0                                                   │
+│                                                                   │
+└──────────────────────────────────────────────────────────────────┘
+  n · New    Del · Delete    Esc · Quit
+```
+
+---
+
+## Prerequisites
+
+- Go 1.21 or later
+- A true-color terminal (iTerm2, Ghostty, Windows Terminal, etc.)
+- oat-latte installed:
+
+```sh
+go get github.com/antoniocali/oat-latte
+```
+
+Create a new module for the tutorial:
+
+```sh
+mkdir tasklist && cd tasklist
+go mod init tasklist
+go get github.com/antoniocali/oat-latte
+```
+
+---
+
+## Step 1 — Hello, terminal
+
+Create `main.go` and get a window on screen.
+
+```go
+package main
+
+import (
+	"log"
+
+	oat "github.com/antoniocali/oat-latte"
+	"github.com/antoniocali/oat-latte/latte"
+	"github.com/antoniocali/oat-latte/widget"
+)
+
+func main() {
+	body := widget.NewText("Hello, terminal!")
+
+	app := oat.NewCanvas(
+		oat.WithTheme(latte.ThemeDark),
+		oat.WithBody(body),
+	)
+	if err := app.Run(); err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+Run it:
+
+```sh
+go run .
+```
+
+You should see `Hello, terminal!` centred in a dark terminal. Press **Esc** to quit.
+
+:::tip What just happened?
+`NewCanvas` owns the tcell screen and event loop. `WithBody` sets the component that fills the middle of the screen. `WithTheme` propagates a colour scheme to every component in the tree.
+:::
+
+---
+
+## Step 2 — A list of tasks
+
+Replace the `Text` with a `List`. A `List` is focusable and handles keyboard navigation automatically.
+
+```go
+package main
+
+import (
+	"log"
+
+	oat "github.com/antoniocali/oat-latte"
+	"github.com/antoniocali/oat-latte/latte"
+	"github.com/antoniocali/oat-latte/layout"
+	"github.com/antoniocali/oat-latte/widget"
+)
+
+func main() {
+	items := []widget.ListItem{
+		{Label: "Buy groceries"},
+		{Label: "Write tutorial"},
+		{Label: "Ship v0.1.0"},
+	}
+
+	list := widget.NewList(items)
+
+	body := layout.NewBorder(list).WithTitle("Tasks")
+
+	app := oat.NewCanvas(
+		oat.WithTheme(latte.ThemeDark),
+		oat.WithBody(body),
+		oat.WithPrimary(list),
+	)
+	if err := app.Run(); err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+Run it. Use **↑ ↓** to move the cursor, **Esc** to quit.
+
+:::tip What changed?
+`layout.NewBorder` wraps any component in a titled box. `WithPrimary(list)` tells the canvas to give focus to the list on startup rather than picking the first focusable it finds in the tree.
+:::
+
+---
+
+## Step 3 — Status bar with key hints
+
+Add a `StatusBar` in the footer. It auto-populates from the focused component's `KeyBindings()`.
+
+```go
+package main
+
+import (
+	"log"
+
+	oat "github.com/antoniocali/oat-latte"
+	"github.com/antoniocali/oat-latte/latte"
+	"github.com/antoniocali/oat-latte/layout"
+	"github.com/antoniocali/oat-latte/widget"
+)
+
+func main() {
+	items := []widget.ListItem{
+		{Label: "Buy groceries"},
+		{Label: "Write tutorial"},
+		{Label: "Ship v0.1.0"},
+	}
+
+	list := widget.NewList(items)
+	body := layout.NewBorder(list).WithTitle("Tasks")
+
+	// highlight-start
+	statusBar := widget.NewStatusBar()
+	// highlight-end
+
+	app := oat.NewCanvas(
+		oat.WithTheme(latte.ThemeDark),
+		oat.WithBody(body),
+		// highlight-start
+		oat.WithAutoStatusBar(statusBar),
+		// highlight-end
+		oat.WithPrimary(list),
+	)
+	if err := app.Run(); err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+The footer now shows the list's built-in key hints (↑↓ to move, Enter to select, Del to delete).
+
+---
+
+## Step 4 — Add tasks with a dialog
+
+When the user presses **n**, show a dialog with a text input.
+
+This is the first time you need application-level state, so introduce an `App` struct.
+
+```go
+package main
+
+import (
+	"log"
+
+	oat "github.com/antoniocali/oat-latte"
+	"github.com/antoniocali/oat-latte/latte"
+	"github.com/antoniocali/oat-latte/layout"
+	"github.com/antoniocali/oat-latte/widget"
+	"github.com/gdamore/tcell/v2"
+)
+
+// App holds all shared state.
+type App struct {
+	canvas *oat.Canvas
+	list   *widget.List
+	items  []widget.ListItem
+}
+
+// showNewDialog opens a modal to add a task.
+func (a *App) showNewDialog() {
+	input := widget.NewEditText().
+		WithHint("Task name").
+		WithPlaceholder("What needs doing?")
+
+	cancelBtn := widget.NewButton("Cancel", func() {
+		a.canvas.HideDialog()
+	})
+
+	createBtn := widget.NewButton("Add", func() {
+		name := input.GetText()
+		if name == "" {
+			return
+		}
+		a.items = append(a.items, widget.ListItem{Label: name})
+		a.list.SetItems(a.items)
+		a.canvas.HideDialog()
+	})
+
+	// Wire ^S on the input to trigger Add as well.
+	input.WithOnSave(func(s string) {
+		createBtn.(*widget.Button) // type hint only — invoke via the closure below
+	})
+
+	btnRow := layout.NewHBox()
+	btnRow.AddChild(layout.NewHFill())
+	btnRow.AddChild(cancelBtn)
+	btnRow.AddChild(layout.NewHFill().WithMaxSize(2))
+	btnRow.AddChild(createBtn)
+
+	body := layout.NewPaddingUniform(
+		layout.NewVBox(
+			widget.NewText("Enter a name for the new task."),
+			layout.NewVFill().WithMaxSize(1),
+			input,
+			layout.NewVFill().WithMaxSize(1),
+			btnRow,
+		), 1)
+
+	dlg := widget.NewDialog("New Task").
+		WithChild(body).
+		WithMaxSize(50, 11)
+
+	a.canvas.ShowDialog(dlg)
+}
+
+// listProxy wraps the list to intercept the 'n' key.
+type listProxy struct {
+	*widget.List
+	app *App
+}
+
+func (p *listProxy) HandleKey(ev *oat.KeyEvent) bool {
+	if ev.Key() == tcell.KeyRune && ev.Rune() == 'n' {
+		p.app.showNewDialog()
+		return true
+	}
+	return p.List.HandleKey(ev)
+}
+
+func (p *listProxy) KeyBindings() []oat.KeyBinding {
+	extra := []oat.KeyBinding{
+		{Key: tcell.KeyRune, Rune: 'n', Label: "n", Description: "New task"},
+	}
+	return append(extra, p.List.KeyBindings()...)
+}
+
+func main() {
+	a := &App{}
+	a.items = []widget.ListItem{
+		{Label: "Buy groceries"},
+		{Label: "Write tutorial"},
+		{Label: "Ship v0.1.0"},
+	}
+
+	a.list = widget.NewList(a.items)
+	proxy := &listProxy{List: a.list, app: a}
+
+	body := layout.NewBorder(proxy).WithTitle("Tasks")
+	statusBar := widget.NewStatusBar()
+
+	a.canvas = oat.NewCanvas(
+		oat.WithTheme(latte.ThemeDark),
+		oat.WithBody(body),
+		oat.WithAutoStatusBar(statusBar),
+		oat.WithPrimary(proxy),
+	)
+
+	if err := a.canvas.Run(); err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+Press **n** to open the dialog, type a name, press **Enter** on the Add button (or Tab to reach it), and the list updates.
+
+:::tip The proxy pattern
+oat-latte uses a **proxy pattern** to add key handling to existing widgets without modifying them. Wrap the widget, override `HandleKey` for the keys you want to intercept, and delegate everything else back to the wrapped widget. `KeyBindings()` exposes the extra hints to the status bar.
+
+See [Focus — The proxy pattern](../focus#the-proxy-pattern) for the full explanation.
+:::
+
+---
+
+## Step 5 — Delete with confirmation
+
+Wire the list's built-in `OnDelete` callback to show a confirm dialog before removing the item.
+
+Add a `showConfirmDialog` method to `App` and hook `WithOnDelete` on the list:
+
+```go
+// showConfirmDialog shows a yes/no dialog. onConfirm is called if the user
+// chooses Yes.
+func (a *App) showConfirmDialog(msg string, onConfirm func()) {
+	noBtn := widget.NewButton("No", func() {
+		a.canvas.HideDialog()
+	})
+	yesBtn := widget.NewButton("Yes", func() {
+		onConfirm()
+		a.canvas.HideDialog()
+	})
+
+	btnRow := layout.NewHBox()
+	btnRow.AddChild(layout.NewHFill())
+	btnRow.AddChild(noBtn)
+	btnRow.AddChild(layout.NewHFill().WithMaxSize(2))
+	btnRow.AddChild(yesBtn)
+
+	body := layout.NewPaddingUniform(
+		layout.NewVBox(
+			widget.NewText(msg),
+			layout.NewVFill().WithMaxSize(1),
+			btnRow,
+		), 1)
+
+	dlg := widget.NewDialog("Confirm").
+		WithChild(body).
+		WithMaxSize(48, 9)
+
+	a.canvas.ShowDialog(dlg)
+}
+```
+
+Then, when building the list, attach the callback:
+
+```go
+a.list = widget.NewList(a.items).
+    WithOnDelete(func(idx int, item widget.ListItem) {
+        a.showConfirmDialog(
+            "Delete \""+item.Label+"\"?",
+            func() {
+                a.items = append(a.items[:idx], a.items[idx+1:]...)
+                a.list.SetItems(a.items)
+            },
+        )
+    })
+```
+
+Press **Del** on a task — a confirmation box appears. **No** dismisses it; **Yes** removes the item.
+
+---
+
+## Step 6 — Toast notifications
+
+Add a `NotificationManager` so the app can show transient success/error toasts.
+
+```go
+// Add to App struct:
+notifs *widget.NotificationManager
+```
+
+Wire it up in `main` after creating the canvas:
+
+```go
+a.notifs = widget.NewNotificationManager()
+a.notifs.SetNotifyChannel(a.canvas.NotifyChannel())
+a.canvas.ShowDialog(a.notifs)   // mount as permanent top-level overlay
+```
+
+Now push a notification after any state change. In `showNewDialog`'s Add callback:
+
+```go
+a.items = append(a.items, widget.ListItem{Label: name})
+a.list.SetItems(a.items)
+a.canvas.HideDialog()
+// highlight-next-line
+a.notifs.Push("Task added", widget.NotificationKindSuccess, 2*time.Second)
+```
+
+And in the confirm delete callback:
+
+```go
+a.items = append(a.items[:idx], a.items[idx+1:]...)
+a.list.SetItems(a.items)
+// highlight-next-line
+a.notifs.Push("Task deleted", widget.NotificationKindSuccess, 2*time.Second)
+```
+
+:::warning Mount order matters
+`NotificationManager` must be the **last** `ShowDialog` call so it sits on top of every other overlay. It is a non-modal persistent overlay — unlike a dialog it never blocks input.
+:::
+
+---
+
+## Complete program
+
+Here is the finished `main.go` with all steps assembled:
+
+```go
+package main
+
+import (
+	"log"
+	"time"
+
+	oat "github.com/antoniocali/oat-latte"
+	"github.com/antoniocali/oat-latte/latte"
+	"github.com/antoniocali/oat-latte/layout"
+	"github.com/antoniocali/oat-latte/widget"
+	"github.com/gdamore/tcell/v2"
+)
+
+type App struct {
+	canvas *oat.Canvas
+	list   *widget.List
+	notifs *widget.NotificationManager
+	items  []widget.ListItem
+}
+
+func (a *App) showConfirmDialog(msg string, onConfirm func()) {
+	noBtn := widget.NewButton("No", func() {
+		a.canvas.HideDialog()
+	})
+	yesBtn := widget.NewButton("Yes", func() {
+		onConfirm()
+		a.canvas.HideDialog()
+	})
+
+	btnRow := layout.NewHBox()
+	btnRow.AddChild(layout.NewHFill())
+	btnRow.AddChild(noBtn)
+	btnRow.AddChild(layout.NewHFill().WithMaxSize(2))
+	btnRow.AddChild(yesBtn)
+
+	body := layout.NewPaddingUniform(
+		layout.NewVBox(
+			widget.NewText(msg),
+			layout.NewVFill().WithMaxSize(1),
+			btnRow,
+		), 1)
+
+	a.canvas.ShowDialog(
+		widget.NewDialog("Confirm").
+			WithChild(body).
+			WithMaxSize(48, 9),
+	)
+}
+
+func (a *App) showNewDialog() {
+	input := widget.NewEditText().
+		WithHint("Task name").
+		WithPlaceholder("What needs doing?")
+
+	doAdd := func() {
+		name := input.GetText()
+		if name == "" {
+			return
+		}
+		a.items = append(a.items, widget.ListItem{Label: name})
+		a.list.SetItems(a.items)
+		a.canvas.HideDialog()
+		a.notifs.Push("Task added", widget.NotificationKindSuccess, 2*time.Second)
+	}
+
+	input.WithOnSave(func(_ string) { doAdd() })
+
+	cancelBtn := widget.NewButton("Cancel", func() { a.canvas.HideDialog() })
+	addBtn    := widget.NewButton("Add",    doAdd)
+
+	btnRow := layout.NewHBox()
+	btnRow.AddChild(layout.NewHFill())
+	btnRow.AddChild(cancelBtn)
+	btnRow.AddChild(layout.NewHFill().WithMaxSize(2))
+	btnRow.AddChild(addBtn)
+
+	body := layout.NewPaddingUniform(
+		layout.NewVBox(
+			widget.NewText("Enter a name for the new task."),
+			layout.NewVFill().WithMaxSize(1),
+			input,
+			layout.NewVFill().WithMaxSize(1),
+			btnRow,
+		), 1)
+
+	a.canvas.ShowDialog(
+		widget.NewDialog("New Task").
+			WithChild(body).
+			WithMaxSize(50, 11),
+	)
+}
+
+// listProxy intercepts 'n' to open the new-task dialog.
+type listProxy struct {
+	*widget.List
+	app *App
+}
+
+func (p *listProxy) HandleKey(ev *oat.KeyEvent) bool {
+	if ev.Key() == tcell.KeyRune && ev.Rune() == 'n' {
+		p.app.showNewDialog()
+		return true
+	}
+	return p.List.HandleKey(ev)
+}
+
+func (p *listProxy) KeyBindings() []oat.KeyBinding {
+	return append(
+		[]oat.KeyBinding{
+			{Key: tcell.KeyRune, Rune: 'n', Label: "n", Description: "New task"},
+		},
+		p.List.KeyBindings()...,
+	)
+}
+
+func main() {
+	a := &App{
+		items: []widget.ListItem{
+			{Label: "Buy groceries"},
+			{Label: "Write tutorial"},
+			{Label: "Ship v0.1.0"},
+		},
+	}
+
+	a.list = widget.NewList(a.items).
+		WithOnDelete(func(idx int, item widget.ListItem) {
+			a.showConfirmDialog(
+				"Delete \""+item.Label+"\"?",
+				func() {
+					a.items = append(a.items[:idx], a.items[idx+1:]...)
+					a.list.SetItems(a.items)
+					a.notifs.Push("Task deleted", widget.NotificationKindSuccess, 2*time.Second)
+				},
+			)
+		})
+
+	proxy     := &listProxy{List: a.list, app: a}
+	body      := layout.NewBorder(proxy).WithTitle("Tasks")
+	statusBar := widget.NewStatusBar()
+
+	a.canvas = oat.NewCanvas(
+		oat.WithTheme(latte.ThemeDark),
+		oat.WithBody(body),
+		oat.WithAutoStatusBar(statusBar),
+		oat.WithPrimary(proxy),
+	)
+
+	a.notifs = widget.NewNotificationManager()
+	a.notifs.SetNotifyChannel(a.canvas.NotifyChannel())
+	a.canvas.ShowDialog(a.notifs)
+
+	if err := a.canvas.Run(); err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+---
+
+## What's next
+
+You now know how oat-latte's core pieces fit together. From here:
+
+- Read [Core Concepts](../concepts) to understand the Measure/Render pipeline in depth.
+- Read [Layout](../layout) for `Grid`, `Stack`, `Padding`, and flex sizing.
+- Read [Focus](../focus) for the proxy pattern, custom `KeyBindings`, and `FocusByRef`.
+- Read [Custom Components](../custom-components) to build your own widgets.

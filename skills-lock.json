@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "skills": {
+    "documentation-writer": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "ee53d65b163cd7eb953a930c95841cfe398cc2c0bd24c06508bbaa07c432be35"
+    },
+    "docusaurus-generator": {
+      "source": "toilahuongg/google-antigravity-kit",
+      "sourceType": "github",
+      "computedHash": "3b41818ad99a4204829468318a3021d494c9fd60070f5a01f9a9f5c7fca8d569"
+    },
+    "golang-patterns": {
+      "source": "affaan-m/everything-claude-code",
+      "sourceType": "github",
+      "computedHash": "67c25e95cec3f3166c2efefd5f4502863a1246c6f742b8cbcd2e2864d2a8182a"
+    }
+  }
+}
