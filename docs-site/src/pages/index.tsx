@@ -92,14 +92,15 @@ export default function Home(): ReactNode {
         {/* hero */}
         <section className={styles.hero}>
           <div className={styles.heroText}>
-            {/* Logo */}
-            <img src={logoUrl} alt="oat-latte" className={styles.heroLogo} />
             <div className={styles.badge}>Go · TUI · component-based</div>
-            <h1 className={styles.heroTitle}>
-              <span className={styles.heroWord}>oat</span>
-              <span className={styles.herySep}>-</span>
-              <span className={styles.heroWord}>latte</span>
-            </h1>
+            <div className={styles.heroTitleRow}>
+              <img src={logoUrl} alt="oat-latte" className={styles.heroLogo} />
+              <h1 className={styles.heroTitle}>
+                <span className={styles.heroWord}>oat</span>
+                <span className={styles.herySep}>-</span>
+                <span className={styles.heroWord}>latte</span>
+              </h1>
+            </div>
             <p className={styles.heroSub}>
               A component-based TUI framework for Go.<br/>
               Measure. Render. Ship.

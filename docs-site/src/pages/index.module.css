@@ -31,12 +31,20 @@
   max-width: 420px;
 }
 
-/* Logo image — shown once logo.png is dropped in */
+/* Logo + title side by side */
+.heroTitleRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-top: 1rem;
+}
+
 .heroLogo {
   display: block;
-  height: 56px;
+  height: clamp(2.8rem, 5vw, 4rem);
   width: auto;
-  margin-bottom: 1.5rem;
+  flex-shrink: 0;
 }
 
 .badge {
@@ -59,7 +67,7 @@
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1;
-  margin: 0 0 1rem;
+  margin: 0;
   color: #000;
 }
 [data-theme='dark'] .heroTitle {
