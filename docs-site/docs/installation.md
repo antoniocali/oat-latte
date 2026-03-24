@@ -41,7 +41,7 @@ import (
 )
 
 func main() {
-    msg  := widget.NewText("Hello from oat-latte!", latte.Style{})
+    msg  := widget.NewText("Hello from oat-latte!")
     body := layout.NewVBox(msg)
 
     app := oat.NewCanvas(
