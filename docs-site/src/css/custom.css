@@ -92,6 +92,7 @@
 .navbar__logo {
   height: 28px;
   width: auto;
+  filter: brightness(0) invert(1);
 }
 
 /* ── Sidebar ─────────────────────────────────────────────────────── */
