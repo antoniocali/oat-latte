@@ -50,6 +50,12 @@ type Canvas struct {
 	// Receiving on this channel triggers a re-render so expiring notifications
 	// are removed from the screen without requiring a key event.
 	notifyCh chan time.Time
+
+	// globalBindings are key bindings that fire regardless of which component
+	// currently holds focus.  They are checked after the focused component has
+	// had a chance to handle the key, so a focused widget can still shadow a
+	// global binding when that is the desired behaviour (e.g. Esc in EditText).
+	globalBindings []KeyBinding
 }
 
 // statusBarSetter is the interface StatusBar satisfies so Canvas can update it
@@ -116,6 +122,26 @@ func WithFocusStyle(s latte.Style) CanvasOption {
 // Per-component styles set explicitly after WithTheme will not be overridden.
 func WithTheme(t latte.Theme) CanvasOption {
 	return func(cv *Canvas) { cv.theme = &t }
+}
+
+// WithGlobalKeyBinding registers one or more key bindings that are active
+// regardless of which component currently holds focus.  The focused widget
+// always gets first refusal: global bindings are only checked when the focused
+// widget did not consume the key event.  Calling this option multiple times
+// (or passing multiple bindings) accumulates rather than replaces bindings.
+//
+// Example — toggle theme with ^T from anywhere:
+//
+//	oat.WithGlobalKeyBinding(oat.KeyBinding{
+//	    Key:         tcell.KeyCtrlT,
+//	    Label:       "^T",
+//	    Description: "Toggle theme",
+//	    Handler:     func() { app.SetTheme(latte.ThemeDark) },
+//	})
+func WithGlobalKeyBinding(bindings ...KeyBinding) CanvasOption {
+	return func(cv *Canvas) {
+		cv.globalBindings = append(cv.globalBindings, bindings...)
+	}
 }
 
 // NewCanvas constructs a Canvas from the given options.
@@ -348,6 +374,10 @@ func (cv *Canvas) handleEvent(ev tcell.Event) bool {
 			}
 			consumed := cv.focus.Dispatch(e)
 			if !consumed {
+				// Try global bindings before falling back to arrow-key cycling.
+				if cv.dispatchGlobal(e) {
+					return true
+				}
 				switch e.Key() {
 				case tcell.KeyUp, tcell.KeyLeft:
 					cv.focus.Prev()
@@ -378,6 +408,10 @@ func (cv *Canvas) handleEvent(ev tcell.Event) bool {
 		// navigation so the user can move focus with arrows in addition to Tab.
 		consumed := cv.focus.Dispatch(e)
 		if !consumed {
+			// Try global bindings before falling back to arrow-key cycling.
+			if cv.dispatchGlobal(e) {
+				return true
+			}
 			switch e.Key() {
 			case tcell.KeyUp, tcell.KeyLeft:
 				cv.focus.Prev()
@@ -461,7 +495,11 @@ func (cv *Canvas) updateStatusBar() {
 		return
 	}
 	bindings := cv.focus.CurrentKeyBindings()
-	// Always append global shortcuts.
+	// Append global bindings so they appear in the status bar alongside the
+	// focused widget's own hints.  Global bindings come after widget-specific
+	// ones so the widget's shortcuts are listed first.
+	bindings = append(bindings, cv.globalBindings...)
+	// Always append navigation shortcuts.
 	bindings = append(bindings,
 		KeyBinding{Key: tcell.KeyTab, Label: "Tab", Description: "Next"},
 		KeyBinding{Key: tcell.KeyEscape, Label: "Esc", Description: "Quit"},
@@ -566,4 +604,44 @@ func findByID(c Component, id string) Component {
 		}
 	}
 	return nil
+}
+
+// dispatchGlobal checks ev against the canvas-level global bindings and invokes
+// the first matching handler.  Returns true if a binding consumed the event.
+// This is called after the focused widget has already had a chance to handle the
+// key, so focused widgets can shadow global bindings when needed.
+func (cv *Canvas) dispatchGlobal(ev *tcell.EventKey) bool {
+	for _, b := range cv.globalBindings {
+		if b.Handler != nil && matchesBinding(ev, b) {
+			b.Handler()
+			return true
+		}
+	}
+	return false
+}
+
+// SetTheme replaces the active theme and immediately re-applies it to the
+// entire component tree (header, body, footer, and any currently mounted
+// overlays or persistent overlays).  The canvas background style is also
+// updated from the new theme.
+//
+// SetTheme is safe to call from inside key-event callbacks (it runs on the
+// main goroutine).  To trigger a re-render after the call, the event loop
+// will automatically re-render on the next tick; you do not need to call
+// NotifyChannel manually.
+func (cv *Canvas) SetTheme(t latte.Theme) {
+	cv.theme = &t
+
+	// Reset canvas background so applyTheme re-derives it from the new theme.
+	cv.style = latte.Style{}
+
+	cv.applyTheme()
+
+	// Re-apply to overlay stack and persistent overlays.
+	for _, o := range cv.overlays {
+		applyThemeTree(o, t)
+	}
+	for _, o := range cv.persistentOverlays {
+		applyThemeTree(o, t)
+	}
 }

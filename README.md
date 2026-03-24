@@ -1,6 +1,8 @@
-# oat-latte
+<p align="center">
+  <img src="static/logo.jpg" alt="oat-latte" />
+</p>
 
-![oat-latte](static/logo.png)
+# oat-latte
 
 A component-based TUI framework for Go.
 
@@ -29,15 +31,14 @@ import (
 )
 
 func main() {
-    input := widget.NewEditText(latte.Style{}).WithPlaceholder("Type something…")
-    btn   := widget.NewButton("OK", latte.Style{}, func() { /* handle */ })
+    input := widget.NewEditText().WithPlaceholder("Type something…")
+    btn   := widget.NewButton("OK", func() { /* handle */ })
 
     body := layout.NewVBox(input, btn)
 
     app := oat.NewCanvas(
         oat.WithTheme(latte.ThemeDark),
         oat.WithBody(body),
-        oat.WithPrimary(input),
     )
 
     if err := app.Run(); err != nil {

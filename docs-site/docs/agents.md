@@ -169,7 +169,7 @@ latte.ColorBrightCyan       // ANSI-16
 
 ### Themes
 
-Five built-in themes, all applied via `oat.WithTheme(t)`:
+Five built-in themes, all applied via `oat.WithTheme(t)` at construction time or switched at runtime via `app.SetTheme(t)`:
 
 ```go
 latte.ThemeDefault   // ANSI-16, works everywhere
@@ -194,6 +194,12 @@ app := oat.NewCanvas(
     oat.WithBody(bodyComponent),
     oat.WithAutoStatusBar(statusBar),   // auto-populates footer with key hints
     oat.WithPrimary(firstFocusable),    // override DFS-first focus
+    oat.WithGlobalKeyBinding(           // app-wide shortcut (see below)
+        oat.KeyBinding{
+            Key: tcell.KeyCtrlT, Label: "^T", Description: "Toggle theme",
+            Handler: func() { /* ... */ },
+        },
+    ),
 )
 if err := app.Run(); err != nil {
     log.Fatal(err)
@@ -203,17 +209,18 @@ if err := app.Run(); err != nil {
 ### Key methods
 
 ```go
-app.Run() error                      // start event loop; blocks until quit
-app.Quit()                           // signal graceful exit
-app.ShowDialog(d Component)          // push modal overlay, steal focus; dismissed by Esc
+app.Run() error                        // start event loop; blocks until quit
+app.Quit()                             // signal graceful exit
+app.SetTheme(t latte.Theme)            // replace active theme and re-apply to full tree
+app.ShowDialog(d Component)            // push modal overlay, steal focus; dismissed by Esc
 app.ShowPersistentOverlay(d Component) // render on top always; never dismissed by Esc
-app.HideDialog()                     // pop topmost overlay, restore body focus
-app.HasOverlay() bool                // true while any dialog is visible
-app.FocusByRef(target Focusable)     // jump focus to a specific widget
+app.HideDialog()                       // pop topmost overlay, restore body focus
+app.HasOverlay() bool                  // true while any dialog is visible
+app.FocusByRef(target Focusable)       // jump focus to a specific widget
 app.GetWidgetByID(id string) Component
 app.GetValue(id string) (interface{}, bool)
-app.InvalidateLayout()               // force full focus re-collection (after tree mutation)
-app.NotifyChannel() chan<- time.Time  // send to trigger a re-render from a goroutine
+app.InvalidateLayout()                 // force full focus re-collection (after tree mutation)
+app.NotifyChannel() chan<- time.Time   // send to trigger a re-render from a goroutine
 ```
 
 ### Layout regions
@@ -403,7 +410,7 @@ bar := widget.NewStatusBar()
 oat.WithAutoStatusBar(bar)
 ```
 
-Auto-populates with the focused component's `KeyBindings()`.
+Auto-populates with the focused component's `KeyBindings()` plus any registered global bindings.
 
 ---
 
@@ -425,8 +432,44 @@ Any key                  → FocusManager.Dispatch(ev)
   ├─ walk KeyBindings() with Handler != nil → invoke handler (consumed)
   └─ else → focused.HandleKey(ev)
        ├─ true  → consumed
-       └─ false → canvas tries Left/Right focus cycling
+       └─ false → canvas.dispatchGlobal(ev)
+            ├─ matching global binding found → invoke handler (consumed)
+            └─ no match → canvas tries Left/Right focus cycling
 ```
+
+Global bindings are checked **after** the focused widget so that widgets can shadow them when needed (e.g. an `EditText` consuming `Esc` to cancel editing rather than triggering the app-level quit).
+
+### Global key bindings
+
+Register app-wide shortcuts with `WithGlobalKeyBinding` at construction time:
+
+```go
+app := oat.NewCanvas(
+    oat.WithTheme(latte.ThemeDark),
+    oat.WithBody(body),
+    oat.WithGlobalKeyBinding(
+        oat.KeyBinding{
+            Key:         tcell.KeyCtrlT,
+            Label:       "^T",
+            Description: "Toggle theme",
+            Handler: func() {
+                current = (current + 1) % len(themes)
+                app.SetTheme(themes[current])
+            },
+        },
+        oat.KeyBinding{
+            Key:         tcell.KeyCtrlH,
+            Label:       "^H",
+            Description: "Help",
+            Handler:     func() { app.ShowDialog(helpDialog) },
+        },
+    ),
+)
+```
+
+- Variadic: pass multiple bindings in one call, or call `WithGlobalKeyBinding` multiple times — bindings accumulate.
+- Global bindings appear in the status bar alongside the focused widget's own hints.
+- A focused widget can shadow a global binding by returning `true` from `HandleKey` for the same key.
 
 ### Custom Focusable (proxy pattern)
 
@@ -619,12 +662,24 @@ func (a *App) build() {
 
     // ... build component tree ...
 
+    themes := []latte.Theme{latte.ThemeDark, latte.ThemeLight, latte.ThemeDracula, latte.ThemeNord}
+    themeIdx := 0
+
     a.canvas = oat.NewCanvas(
-        oat.WithTheme(latte.ThemeDark),
+        oat.WithTheme(themes[themeIdx]),
         oat.WithHeader(header),
         oat.WithBody(body),
         oat.WithAutoStatusBar(statusBar),
         oat.WithPrimary(primaryFocusable),
+        oat.WithGlobalKeyBinding(oat.KeyBinding{
+            Key:         tcell.KeyCtrlT,
+            Label:       "^T",
+            Description: "Toggle theme",
+            Handler: func() {
+                themeIdx = (themeIdx + 1) % len(themes)
+                a.canvas.SetTheme(themes[themeIdx])
+            },
+        }),
     )
 
     a.notifs.SetNotifyChannel(a.canvas.NotifyChannel())
@@ -651,3 +706,5 @@ func main() {
 - `Canvas.InvalidateLayout()` must be called after any dynamic addition or removal of components from the tree to re-collect focusable nodes.
 - Key event handlers run on the main goroutine. Use `app.NotifyChannel()` to trigger re-renders from background goroutines.
 - `app.ShowPersistentOverlay(notifs)` mounts `NotificationManager` as a persistent (non-modal) overlay. It is never dismissed by Esc and always renders on top of modal dialogs.
+- Global bindings registered with `WithGlobalKeyBinding` fire **after** the focused widget. A widget can shadow a global binding by returning `true` from `HandleKey`.
+- `app.SetTheme(t)` re-applies the theme to the entire tree including all overlays and persistent overlays. It resets the canvas background style so the new theme's `Canvas` token takes effect.

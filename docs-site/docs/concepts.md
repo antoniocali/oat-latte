@@ -89,6 +89,11 @@ app := oat.NewCanvas(
     oat.WithBody(bodyComponent),
     oat.WithAutoStatusBar(statusBar),
     oat.WithPrimary(firstFocusable),
+    oat.WithGlobalKeyBinding(oat.KeyBinding{   // app-wide shortcut
+        Key: tcell.KeyCtrlT, Label: "^T",
+        Description: "Toggle theme",
+        Handler: func() { /* ... */ },
+    }),
 )
 if err := app.Run(); err != nil {
     log.Fatal(err)
@@ -103,6 +108,7 @@ The canvas divides the terminal vertically: **header → body → footer**. Head
 |---|---|
 | `Run()` | Start the event loop; blocks until quit |
 | `Quit()` | Signal a graceful exit |
+| `SetTheme(t)` | Replace the active theme and re-apply to the full tree |
 | `ShowDialog(d)` | Push a modal overlay; focus moves into it |
 | `HideDialog()` | Pop the topmost overlay; focus returns to body |
 | `FocusByRef(f)` | Jump focus directly to a specific widget |
@@ -138,28 +144,41 @@ type App struct {
 }
 
 func (a *App) build() {
-    a.list   = widget.NewList(items, latte.Style{})
-    a.detail = widget.NewText("", latte.Style{})
+    a.list   = widget.NewList(items)
+    a.detail = widget.NewText("")
 
     a.list.WithOnCursorChange(func(_ int, item widget.ListItem) {
         a.detail.SetText(fmt.Sprint(item.Value))
     })
 
     body := layout.NewHBox()
-    body.AddFlexChild(layout.NewBorder(a.list).WithTitle("Items"),  1)
+    body.AddFlexChild(layout.NewBorder(a.list).WithTitle("Items"),   1)
     body.AddFlexChild(layout.NewBorder(a.detail).WithTitle("Detail"), 3)
 
-    statusBar := widget.NewStatusBar(latte.Style{})
+    statusBar := widget.NewStatusBar()
     a.notifs  = widget.NewNotificationManager()
 
+    themes := []latte.Theme{latte.ThemeDark, latte.ThemeLight, latte.ThemeDracula, latte.ThemeNord}
+    themeIdx := 0
+
     a.canvas = oat.NewCanvas(
-        oat.WithTheme(latte.ThemeDark),
+        oat.WithTheme(themes[themeIdx]),
         oat.WithBody(body),
         oat.WithAutoStatusBar(statusBar),
         oat.WithPrimary(a.list),
+        oat.WithGlobalKeyBinding(oat.KeyBinding{
+            Key:         tcell.KeyCtrlT,
+            Label:       "^T",
+            Description: "Toggle theme",
+            Handler: func() {
+                themeIdx = (themeIdx + 1) % len(themes)
+                a.canvas.SetTheme(themes[themeIdx])
+            },
+        }),
     )
+
     a.notifs.SetNotifyChannel(a.canvas.NotifyChannel())
-    a.canvas.ShowDialog(a.notifs)
+    a.canvas.ShowPersistentOverlay(a.notifs) // never dismissed by Esc
 }
 
 func main() {

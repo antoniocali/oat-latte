@@ -1,7 +1,7 @@
 ---
 sidebar_position: 6
 title: Themes & Styles
-description: How the Style struct, Style.Merge cascade, and built-in themes work in oat-latte.
+description: How the Style struct, Style.Merge cascade, built-in themes, and runtime theme switching work in oat-latte.
 ---
 
 # Themes & Styles
@@ -50,7 +50,8 @@ Use `latte.BorderExplicitNone` to suppress a border that a theme would otherwise
 
 ```go
 // No box drawn, even if the theme sets a border on Input.
-input := widget.NewEditText(latte.Style{Border: latte.BorderExplicitNone})
+input := widget.NewEditText().
+    WithStyle(latte.Style{Border: latte.BorderExplicitNone})
 ```
 
 ## Style.Merge
@@ -79,7 +80,7 @@ func (w *MyWidget) ApplyTheme(t latte.Theme) {
 
 ## Built-in themes
 
-Apply a theme once at construction time with `oat.WithTheme(t)`. The canvas walks the entire component tree and calls `ApplyTheme` on every node that implements `ThemeReceiver`.
+Five themes ship out of the box:
 
 | Theme | Palette | Terminal requirement |
 |---|---|---|
@@ -89,12 +90,46 @@ Apply a theme once at construction time with `oat.WithTheme(t)`. The canvas walk
 | `latte.ThemeDracula` | True-color, Dracula palette | True-color terminal |
 | `latte.ThemeNord` | True-color, Nord arctic palette | True-color terminal |
 
+### Applying a theme at construction
+
+Pass a theme via `oat.WithTheme(t)`. The canvas walks the entire component tree and calls `ApplyTheme` on every node that implements `ThemeReceiver`.
+
 ```go
 app := oat.NewCanvas(
     oat.WithTheme(latte.ThemeDark),
     oat.WithBody(body),
 )
 ```
+
+### Switching themes at runtime
+
+Call `app.SetTheme(t)` to replace the active theme at any time — for example from a key binding. The new theme is immediately re-applied to the entire tree, including all mounted overlays and persistent overlays. The canvas background is also updated.
+
+```go
+themes := []latte.Theme{
+    latte.ThemeDark,
+    latte.ThemeLight,
+    latte.ThemeDracula,
+    latte.ThemeNord,
+}
+current := 0
+
+app := oat.NewCanvas(
+    oat.WithTheme(themes[current]),
+    oat.WithBody(body),
+    oat.WithGlobalKeyBinding(oat.KeyBinding{
+        Key:         tcell.KeyCtrlT,
+        Label:       "^T",
+        Description: "Toggle theme",
+        Handler: func() {
+            current = (current + 1) % len(themes)
+            app.SetTheme(themes[current])
+        },
+    }),
+)
+```
+
+`SetTheme` is safe to call from any key-event callback — it runs on the main goroutine and the event loop re-renders on the next tick automatically.
 
 ## Semantic theme tokens
 
@@ -118,6 +153,8 @@ Themes expose named style tokens — roles rather than components — so the sam
 
 ## Applying a theme to a custom widget
 
+Pick the token that best describes your widget's role and apply it via `Merge`:
+
 ```go
 func (w *MyWidget) ApplyTheme(t latte.Theme) {
     // Pick the token that best describes your widget's role.
@@ -126,4 +163,8 @@ func (w *MyWidget) ApplyTheme(t latte.Theme) {
 }
 ```
 
-The framework calls `ApplyTheme` automatically when the canvas is constructed with `WithTheme`. You do not need to call it yourself.
+The framework calls `ApplyTheme` automatically when:
+- the canvas starts via `WithTheme`, and
+- `app.SetTheme(t)` is called at runtime.
+
+You do not need to call it yourself.
