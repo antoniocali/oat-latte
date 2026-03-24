@@ -168,15 +168,15 @@ func (a *App) selectedCardInCol(col ColumnID) (Card, bool) {
 // ── dialogs ───────────────────────────────────────────────────────────────────
 
 func (a *App) showNewCardDialog() {
-	nameInput := widget.NewEditText().WithPlaceholder("Card name…")
-	descInput := widget.NewMultiLineEditText()
+	nameInput := widget.NewEditText().
+		WithPlaceholder("Card name…").
+		WithHint("Name")
+	descInput := widget.NewMultiLineEditText().
+		WithHint("Description")
 
 	var dlg *widget.Dialog
 
-	cancelBtn := widget.NewButton("Cancel", func() {
-		a.canvas.HideDialog()
-	})
-	createBtn := widget.NewButton("Create", func() {
+	doCreate := func() {
 		name := strings.TrimSpace(nameInput.GetText())
 		if name == "" {
 			a.notifs.Push("Name cannot be empty", widget.NotificationKindError, 2*time.Second)
@@ -187,10 +187,14 @@ func (a *App) showNewCardDialog() {
 		a.refreshAll()
 		a.canvas.HideDialog()
 		a.notifs.Push("Card created: "+name, widget.NotificationKindSuccess, 2*time.Second)
-	})
+	}
 
-	saveOnEnter := func(text string) { createBtn.HandleKey(tcell.NewEventKey(tcell.KeyEnter, 0, tcell.ModNone)) }
-	nameInput.WithOnSave(saveOnEnter)
+	cancelBtn := widget.NewButton("Cancel", func() {
+		a.canvas.HideDialog()
+	})
+	createBtn := widget.NewButton("Create", doCreate)
+
+	nameInput.WithOnSave(func(_ string) { doCreate() })
 
 	btnRow := layout.NewHBox()
 	btnRow.AddChild(layout.NewHFill())
@@ -199,9 +203,7 @@ func (a *App) showNewCardDialog() {
 	btnRow.AddChild(createBtn)
 
 	body := layout.NewPaddingUniform(layout.NewVBox(
-		widget.NewText("Name"),
 		nameInput,
-		widget.NewText("Description"),
 		descInput,
 		layout.NewVFill().WithMaxSize(1),
 		btnRow,
@@ -216,9 +218,9 @@ func (a *App) showNewCardDialog() {
 }
 
 func (a *App) showViewDialog(card Card) {
-	nameInput := widget.NewEditText()
+	nameInput := widget.NewEditText().WithHint("Name")
 	nameInput.SetText(card.Name)
-	descInput := widget.NewMultiLineEditText()
+	descInput := widget.NewMultiLineEditText().WithHint("Description")
 	descInput.SetText(card.Desc)
 
 	var dlg *widget.Dialog
@@ -252,9 +254,7 @@ func (a *App) showViewDialog(card Card) {
 	btnRow.AddChild(saveBtn)
 
 	body := layout.NewPaddingUniform(layout.NewVBox(
-		widget.NewText("Name"),
 		nameInput,
-		widget.NewText("Description"),
 		descInput,
 		layout.NewVFill().WithMaxSize(1),
 		btnRow,

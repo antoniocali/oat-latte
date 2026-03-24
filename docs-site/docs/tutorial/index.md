@@ -224,7 +224,7 @@ func (a *App) showNewDialog() {
 		a.canvas.HideDialog()
 	})
 
-	createBtn := widget.NewButton("Add", func() {
+	doAdd := func() {
 		name := input.GetText()
 		if name == "" {
 			return
@@ -232,12 +232,12 @@ func (a *App) showNewDialog() {
 		a.items = append(a.items, widget.ListItem{Label: name})
 		a.list.SetItems(a.items)
 		a.canvas.HideDialog()
-	})
+	}
 
 	// Wire ^S on the input to trigger Add as well.
-	input.WithOnSave(func(s string) {
-		createBtn.(*widget.Button) // type hint only — invoke via the closure below
-	})
+	input.WithOnSave(func(_ string) { doAdd() })
+
+	createBtn := widget.NewButton("Add", doAdd)
 
 	btnRow := layout.NewHBox()
 	btnRow.AddChild(layout.NewHFill())
@@ -391,7 +391,7 @@ Wire it up in `main` after creating the canvas:
 ```go
 a.notifs = widget.NewNotificationManager()
 a.notifs.SetNotifyChannel(a.canvas.NotifyChannel())
-a.canvas.ShowDialog(a.notifs)   // mount as permanent top-level overlay
+a.canvas.ShowPersistentOverlay(a.notifs)   // mount permanently — never dismissed by Esc
 ```
 
 Now push a notification after any state change. In `showNewDialog`'s Add callback:
@@ -413,8 +413,8 @@ a.list.SetItems(a.items)
 a.notifs.Push("Task deleted", widget.NotificationKindSuccess, 2*time.Second)
 ```
 
-:::warning Mount order matters
-`NotificationManager` must be the **last** `ShowDialog` call so it sits on top of every other overlay. It is a non-modal persistent overlay — unlike a dialog it never blocks input.
+:::warning Persistent overlay, not a dialog
+Use `ShowPersistentOverlay` for `NotificationManager`. Unlike `ShowDialog`, it is never dismissed by Esc and always renders on top of modal dialogs without blocking input.
 :::
 
 ---
@@ -573,7 +573,7 @@ func main() {
 
 	a.notifs = widget.NewNotificationManager()
 	a.notifs.SetNotifyChannel(a.canvas.NotifyChannel())
-	a.canvas.ShowDialog(a.notifs)
+	a.canvas.ShowPersistentOverlay(a.notifs)
 
 	if err := a.canvas.Run(); err != nil {
 		log.Fatal(err)
