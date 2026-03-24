@@ -1,0 +1,169 @@
+/**
+ * Footer styles — oat-latte
+ * B&W / monospace / 2px borders, consistent with the rest of the site.
+ */
+
+/* ── shell ──────────────────────────────────────────────────────── */
+.footer {
+  background: #000;
+  color: #fff;
+  border-top: 2px solid #000;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+[data-theme='dark'] .footer {
+  background: #000;
+  border-top-color: #fff;
+}
+
+/* ── inner grid ─────────────────────────────────────────────────── */
+.inner {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 0;
+  max-width: 1200px;
+  margin: 0 auto;
+  border-bottom: 2px solid #333;
+}
+
+@media (max-width: 720px) {
+  .inner {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── brand ──────────────────────────────────────────────────────── */
+.brand {
+  padding: 2.5rem 2.5rem 2.5rem 2rem;
+  border-right: 2px solid #333;
+}
+
+@media (max-width: 720px) {
+  .brand {
+    border-right: none;
+    border-bottom: 2px solid #333;
+    padding: 2rem 1.5rem;
+  }
+}
+
+.brandName {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #fff;
+  margin-bottom: 0.6rem;
+}
+
+.tagline {
+  font-size: 0.78rem;
+  color: #888;
+  line-height: 1.6;
+  margin: 0 0 1.5rem;
+}
+
+.copy {
+  font-size: 0.72rem;
+  color: #555;
+  margin: 0;
+}
+
+/* ── columns ────────────────────────────────────────────────────── */
+.col {
+  padding: 2.5rem 2rem;
+  border-right: 2px solid #333;
+}
+
+.col:last-child {
+  border-right: none;
+}
+
+@media (max-width: 720px) {
+  .col {
+    border-right: none;
+    border-bottom: 2px solid #333;
+    padding: 1.75rem 1.5rem;
+  }
+  .col:last-child {
+    border-bottom: none;
+  }
+}
+
+.colHeading {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #fff;
+  margin-bottom: 1.25rem;
+}
+
+/* ── link list ──────────────────────────────────────────────────── */
+.linkList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.link {
+  display: block;
+  padding: 0.45em 0.6em;
+  font-size: 0.8rem;
+  color: #aaa !important;
+  text-decoration: none !important;
+  border: 2px solid transparent;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  margin: 0 -0.6em;
+}
+
+.link:hover {
+  background: #fff !important;
+  color: #000 !important;
+  border-color: #fff !important;
+  text-decoration: none !important;
+}
+
+/* ── bottom bar ─────────────────────────────────────────────────── */
+.bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem 2rem;
+}
+
+@media (max-width: 720px) {
+  .bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1rem 1.5rem;
+    gap: 0.4rem;
+  }
+}
+
+.builtWith {
+  font-size: 0.72rem;
+  color: #555;
+}
+
+.bottomLink {
+  color: #888 !important;
+  text-decoration: underline !important;
+}
+
+.bottomLink:hover {
+  color: #fff !important;
+}
+
+.mono {
+  font-size: 0.72rem;
+  color: #444;
+  letter-spacing: 0.02em;
+}

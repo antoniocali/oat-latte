@@ -273,19 +273,9 @@ table tr:nth-child(even) {
   background: #111 !important;
 }
 
-/* ── Footer ──────────────────────────────────────────────────────── */
-.footer {
-  border-top: 2px solid #000;
-}
-[data-theme='dark'] .footer {
-  border-top-color: #fff;
-}
-.footer__title {
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  font-size: 0.75rem;
-}
+/* ── Footer — handled by src/theme/Footer (swizzled component) ───── */
+/* Global token overrides kept for any Docusaurus internals that      */
+/* still reference these variables (e.g. mobile menu, etc.).          */
 
 /* ── Pagination ──────────────────────────────────────────────────── */
 .pagination-nav__link {
