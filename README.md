@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="static/logo.jpg" alt="oat-latte" />
+  <img src="static/logo.png" alt="oat-latte" />
 </p>
 
 # oat-latte
