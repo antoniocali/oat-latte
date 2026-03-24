@@ -3,6 +3,7 @@ import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import useBaseUrl from '@docusaurus/useBaseUrl';
 import Layout from '@theme/Layout';
+import Head from '@docusaurus/Head';
 import styles from './index.module.css';
 
 const DEMO_LINES = [
@@ -85,8 +86,34 @@ const FEATURES = [
 export default function Home(): ReactNode {
   const {siteConfig} = useDocusaurusContext();
   const logoUrl = useBaseUrl('/img/logo.png');
+  const ogImage = `${siteConfig.url}/img/android-chrome-512x512.png`;
+  const canonicalUrl = siteConfig.url;
   return (
     <Layout title={siteConfig.title} description={siteConfig.tagline}>
+      <Head>
+        {/* Primary */}
+        <meta name="description" content={siteConfig.tagline} />
+        <link rel="canonical" href={canonicalUrl} />
+
+        {/* OpenGraph */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:site_name" content={siteConfig.title} />
+        <meta property="og:title" content={`${siteConfig.title} — ${siteConfig.tagline}`} />
+        <meta property="og:description" content="A component-based TUI framework for Go. Two-pass layout, composable widgets, five built-in themes, modal dialogs, and goroutine-safe redraws." />
+        <meta property="og:image" content={ogImage} />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="oat-latte logo" />
+
+        {/* Twitter / X Card */}
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={`${siteConfig.title} — ${siteConfig.tagline}`} />
+        <meta name="twitter:description" content="A component-based TUI framework for Go. Two-pass layout, composable widgets, five built-in themes, modal dialogs, and goroutine-safe redraws." />
+        <meta name="twitter:image" content={ogImage} />
+        <meta name="twitter:image:alt" content="oat-latte logo" />
+      </Head>
       <main className={styles.page}>
 
         {/* hero */}
