@@ -81,6 +81,16 @@ const FEATURES = [
     title: 'Goroutine-safe redraws',
     body: 'NotifyChannel lets background goroutines trigger repaints without locks. Key handlers run on the main goroutine — no races.',
   },
+  {
+    icon: '◭',
+    title: 'Automatic focus highlight',
+    body: 'Border panels light up with the theme\'s focus colour the moment any descendant receives focus. Zero configuration — it just works.',
+  },
+  {
+    icon: '◮',
+    title: 'Context-aware tab gating',
+    body: 'FocusGuard lets any component exclude its entire subtree from Tab cycling at runtime. Build mode-gated panels without managing focus lists manually.',
+  },
 ];
 
 export default function Home(): ReactNode {

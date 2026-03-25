@@ -12,29 +12,58 @@ Layout containers hold children and handle all size negotiation between them. Ev
 
 `VBox` stacks children **vertically**; `HBox` places them **horizontally**.
 
-```go
-// Fixed children take their natural size.
-// Flex children share whatever space remains.
-vbox := layout.NewVBox()
-vbox.AddChild(widget.NewText("Label"))
-vbox.AddFlexChild(myEditText, 1)       // weight 1
-vbox.AddFlexChild(anotherField, 2)     // weight 2 = twice as tall
+### AddChild vs AddFlexChild
 
-// VFill is a shorthand flex spacer with weight 1.
+This is the core sizing decision you make for every child.
+
+**`AddChild(c)`** — the child takes its **natural size** and no more. The box asks the child how big it wants to be (via `Measure`) and allocates exactly that. Use this for things whose size is inherently fixed: labels, buttons, a single-line input, a status row.
+
+**`AddFlexChild(c, weight)`** — the child participates in **flex distribution**. After all fixed children have taken their space, whatever is left over is divided among flex children proportionally by weight. A child with weight `2` gets twice the space of one with weight `1`. Use this for the main content area, multi-line editors, lists — anything that should grow to fill available space.
+
+```
+┌─────────────────────────────┐
+│  AddChild  → natural size   │  ← e.g. a title row: always 1 row tall
+│  AddChild  → natural size   │  ← e.g. a button row: always 1 row tall
+│                             │
+│  AddFlexChild weight 1      │  ← fills all remaining space
+│                             │
+│  AddChild  → natural size   │  ← e.g. a status bar: always 1 row tall
+└─────────────────────────────┘
+```
+
+When **multiple** flex children are present, space is split by the ratio of their weights:
+
+```
+remaining space = 30 rows
+  flex child A  weight 1  → 10 rows  (1/3)
+  flex child B  weight 2  → 20 rows  (2/3)
+```
+
+:::tip
+A `VFill` or `HFill` added via `AddChild` auto-promotes itself to a flex slot with weight `1` — it is a shorthand for `AddFlexChild(layout.NewVFill(), 1)`.
+:::
+
+```go
+vbox := layout.NewVBox()
+vbox.AddChild(widget.NewText("Label"))        // fixed: takes its natural height
+vbox.AddFlexChild(myEditText, 1)              // flex weight 1
+vbox.AddFlexChild(anotherField, 2)            // flex weight 2 → twice as tall as myEditText
+
+// VFill shorthand — equivalent to AddFlexChild(layout.NewVFill(), 1)
 vbox.AddChild(layout.NewVFill())
 
-// Fixed gap of exactly 1 row.
+// Fixed gap of exactly 1 row — WithMaxSize caps the spacer's flex growth
 vbox.AddChild(layout.NewVFill().WithMaxSize(1))
 
-// HBox variadic constructor for when all children are fixed-size.
+// HBox variadic constructor: all children are fixed-size
 hbox := layout.NewHBox(child1, child2, child3)
 
-// Add a flex progress bar that fills remaining horizontal space.
+// Flex progress bar that fills remaining horizontal space
 hbox.AddFlexChild(progressBar, 1)
 ```
 
 :::tip
-Use `AddFlexChild` with weight `1` on the main content area and fixed-size `AddChild` for everything else (headers, footers, button rows). This is the most common layout pattern.
+The most common pattern: one `AddFlexChild(mainContent, 1)` for the central area, `AddChild` for everything else (header, footer, button rows). Everything snaps to its natural size; the main area fills the rest.
 :::
 
 ## Border
