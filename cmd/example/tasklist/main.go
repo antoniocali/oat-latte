@@ -86,7 +86,7 @@ func (a *App) showNewDialog() {
 	a.canvas.ShowDialog(
 		widget.NewDialog("New Task").
 			WithChild(body).
-			WithMaxSize(50, 11),
+			WithMaxSize(50, 13),
 	)
 }
 

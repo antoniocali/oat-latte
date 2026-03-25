@@ -172,3 +172,35 @@ row.AddChild(rightLabel)
 // Fixed-size spacer (e.g. a 1-row vertical gap).
 vbox.AddChild(layout.NewVFill().WithMaxSize(1))
 ```
+
+## FlexChild
+
+`FlexChild` wraps any `Component` as a flex slot. It is a convenience type that lets you pass flex children directly to the variadic `NewVBox` / `NewHBox` constructors without needing a separate `AddFlexChild` call after construction.
+
+```go
+// Without FlexChild — two-step pattern:
+vbox := layout.NewVBox(titleText)
+vbox.AddFlexChild(bodyEditor, 1)
+vbox.AddChild(btnRow)
+
+// With FlexChild — one-liner:
+vbox := layout.NewVBox(
+    titleText,
+    layout.NewFlexChild(bodyEditor),   // weight defaults to 1
+    btnRow,
+)
+```
+
+`NewFlexChild(child, weight)` — weight is variadic and defaults to `1`. The minimum effective weight is `1`.
+
+```go
+// Explicit weight:
+layout.NewFlexChild(leftPanel, 1)
+layout.NewFlexChild(rightPanel, 3)   // right panel gets 3× the space
+```
+
+`FlexChild` implements `oat.Layout` via `Children()`, so theme propagation and focus collection recurse into the wrapped component automatically. You can use it anywhere `AddFlexChild` would be used, including inside `HBox`.
+
+:::tip When to use FlexChild vs AddFlexChild
+They are equivalent in effect. Prefer `NewFlexChild` when building the child list inline (e.g. passing to a variadic constructor). Use `AddFlexChild` when you need to add a flex child to an already-constructed box.
+:::
