@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - 'docs-site/**'
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 permissions:
@@ -24,6 +26,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # needed to resolve tags
+
+      - name: Resolve latest version tag
+        id: version
+        run: |
+          TAG=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          echo "tag=${TAG:-v0.1.0}" >> "$GITHUB_OUTPUT"
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -39,6 +49,8 @@ jobs:
       - name: Build
         run: npm run build
         working-directory: docs-site
+        env:
+          LATEST_TAG: ${{ steps.version.outputs.tag }}
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

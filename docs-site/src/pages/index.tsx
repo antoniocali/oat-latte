@@ -85,6 +85,7 @@ const FEATURES = [
 
 export default function Home(): ReactNode {
   const {siteConfig} = useDocusaurusContext();
+  const version = (siteConfig.customFields?.version as string) ?? 'v0.1.0';
   const logoUrl = useBaseUrl('/img/logo.png');
   const ogImage = `${siteConfig.url}/img/android-chrome-512x512.png`;
   const canonicalUrl = siteConfig.url;
@@ -150,7 +151,7 @@ export default function Home(): ReactNode {
             </div>
             <div className={styles.installBlock}>
               <span className={styles.installPrompt}>$</span>
-              <span className={styles.installCmd}>go get github.com/antoniocali/oat-latte</span>
+              <span className={styles.installCmd}>go get github.com/antoniocali/oat-latte@{version}</span>
             </div>
           </div>
           <div className={styles.heroDemo}>

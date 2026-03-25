@@ -310,6 +310,21 @@ hr {
   padding-bottom: 0.25em;
 }
 
+/* ── Navbar version badge ────────────────────────────────────────── */
+.navbar-version-badge {
+  font-size: 0.7rem !important;
+  letter-spacing: 0.06em;
+  border: 1.5px solid rgba(255,255,255,0.45) !important;
+  padding: 0.2em 0.6em !important;
+  opacity: 0.8;
+  transition: opacity 0.12s, border-color 0.12s !important;
+  text-decoration: none !important;
+}
+.navbar-version-badge:hover {
+  opacity: 1;
+  border-color: #fff !important;
+}
+
 /* ── Layout ──────────────────────────────────────────────────────── */
 .container {
   max-width: 960px;

@@ -2,10 +2,16 @@ import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
+const latestVersion = process.env.LATEST_TAG ?? 'v0.1.0';
+
 const config: Config = {
   title: 'oat-latte',
   tagline: 'A component-based TUI framework for Go.',
   favicon: 'img/favicon.ico',
+
+  customFields: {
+    version: latestVersion,
+  },
 
   future: {
     v4: true,
@@ -57,6 +63,12 @@ const config: Config = {
           sidebarId: 'docsSidebar',
           position: 'left',
           label: 'Docs',
+        },
+        {
+          href: `https://github.com/antoniocali/oat-latte/releases/tag/${latestVersion}`,
+          label: latestVersion,
+          position: 'right',
+          className: 'navbar-version-badge',
         },
         {
           href: 'https://github.com/antoniocali/oat-latte',
