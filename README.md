@@ -59,6 +59,10 @@ make run-kanban    # Kanban board
 
 Full documentation is at **[oat-latte.dev](https://oat-latte.dev)**.
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## License
 
 MIT
