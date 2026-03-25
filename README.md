@@ -50,8 +50,9 @@ func main() {
 ## Examples
 
 ```sh
-make run-notes    # Notes manager
-make run-kanban   # Kanban board
+make run-tasklist  # Task list (tutorial app)
+make run-notes     # Notes manager
+make run-kanban    # Kanban board
 ```
 
 ## Documentation

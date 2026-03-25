@@ -12,7 +12,7 @@ description: Toast notification banners with auto-dismiss.
 
 ## Setup
 
-Mount the `NotificationManager` as a **persistent overlay** after constructing the canvas. Use `ShowPersistentOverlay` — it renders on top of everything else and is never dismissed by Esc.
+Pass the `NotificationManager` to `oat.WithNotificationManager` when constructing the canvas. This wires the timer channel and mounts the manager as a persistent overlay automatically.
 
 ```go
 notifs := widget.NewNotificationManager()
@@ -20,13 +20,8 @@ notifs := widget.NewNotificationManager()
 app := oat.NewCanvas(
     oat.WithTheme(latte.ThemeDark),
     oat.WithBody(body),
+    oat.WithNotificationManager(notifs),  // wires channel + mounts as persistent overlay
 )
-
-// Connect the timer channel so expiring notifications trigger re-renders.
-notifs.SetNotifyChannel(app.NotifyChannel())
-
-// Mount permanently on top of the UI (never dismissed by Esc).
-app.ShowPersistentOverlay(notifs)
 ```
 
 ## Pushing notifications
@@ -60,8 +55,8 @@ notifs.PopAll() // clear all active notifications
 
 ## Thread safety
 
-`Push`, `Pop`, and `PopAll` are safe to call from background goroutines. The `NotifyChannel` connection ensures the UI re-renders when a banner expires, even if the user is not pressing any keys.
+`Push`, `Pop`, and `PopAll` are safe to call from background goroutines. The `WithNotificationManager` option wires the re-render channel automatically so the UI re-renders when a banner expires, even if the user is not pressing any keys.
 
 :::warning Persistent overlay, not a dialog
-`NotificationManager` must be mounted with `ShowPersistentOverlay`, not `ShowDialog`. Unlike a dialog it never blocks input and is never dismissed by Esc — it always renders on top.
+`NotificationManager` must be wired via `oat.WithNotificationManager`, not `ShowDialog`. It never blocks input and is never dismissed by Esc — it always renders on top.
 :::

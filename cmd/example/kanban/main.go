@@ -396,10 +396,8 @@ func (a *App) build() {
 		oat.WithBody(body),
 		oat.WithAutoStatusBar(a.statusBar),
 		oat.WithPrimary(a.proxies[ColBacklog]),
+		oat.WithNotificationManager(a.notifs),
 	)
-
-	a.notifs.SetNotifyChannel(a.canvas.NotifyChannel())
-	a.canvas.ShowPersistentOverlay(a.notifs)
 
 	a.notifs.Push("Welcome to Kanban! Press [n] to create a card.", widget.NotificationKindInfo, 4*time.Second)
 }
@@ -489,6 +487,8 @@ func (p *columnProxy) HandleKey(ev *oat.KeyEvent) bool {
 	case ev.Key() == tcell.KeyRune && ev.Rune() == 'n':
 		p.newCard()
 		return true
+	case ev.Key() == tcell.KeyRune && ev.Rune() == 'd':
+		return p.List.HandleKey(tcell.NewEventKey(tcell.KeyDelete, 0, tcell.ModNone))
 	case ev.Key() == tcell.KeyRight && ev.Modifiers() == tcell.ModShift:
 		p.moveRight()
 		return true
@@ -504,6 +504,7 @@ func (p *columnProxy) KeyBindings() []oat.KeyBinding {
 	base := p.List.KeyBindings()
 	extra := []oat.KeyBinding{
 		{Key: tcell.KeyRune, Rune: 'n', Label: "n", Description: "New card"},
+		{Key: tcell.KeyRune, Rune: 'd', Label: "d", Description: "Delete card"},
 		{Key: tcell.KeyRight, Mod: tcell.ModShift, Label: "⇧→", Description: "Move right"},
 		{Key: tcell.KeyLeft, Mod: tcell.ModShift, Label: "⇧←", Description: "Move left"},
 		// Display-only hints: Left/Right column switching is handled by canvas

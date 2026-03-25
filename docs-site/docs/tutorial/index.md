@@ -386,12 +386,18 @@ Add a `NotificationManager` so the app can show transient success/error toasts.
 notifs *widget.NotificationManager
 ```
 
-Wire it up in `main` after creating the canvas:
+Wire it via `oat.WithNotificationManager` when constructing the canvas:
 
 ```go
 a.notifs = widget.NewNotificationManager()
-a.notifs.SetNotifyChannel(a.canvas.NotifyChannel())
-a.canvas.ShowPersistentOverlay(a.notifs)   // mount permanently — never dismissed by Esc
+
+a.canvas = oat.NewCanvas(
+    oat.WithTheme(latte.ThemeDark),
+    oat.WithBody(body),
+    oat.WithAutoStatusBar(statusBar),
+    oat.WithPrimary(proxy),
+    oat.WithNotificationManager(a.notifs),  // wires channel + mounts as persistent overlay
+)
 ```
 
 Now push a notification after any state change. In `showNewDialog`'s Add callback:
@@ -413,8 +419,50 @@ a.list.SetItems(a.items)
 a.notifs.Push("Task deleted", widget.NotificationKindSuccess, 2*time.Second)
 ```
 
-:::warning Persistent overlay, not a dialog
-Use `ShowPersistentOverlay` for `NotificationManager`. Unlike `ShowDialog`, it is never dismissed by Esc and always renders on top of modal dialogs without blocking input.
+:::tip WithNotificationManager
+`oat.WithNotificationManager(notifs)` handles both wiring the timer channel and mounting the manager as a persistent overlay. There is no need to call `SetNotifyChannel` or `ShowPersistentOverlay` manually.
+:::
+
+---
+
+## Step 7 — Delete with `d` as well as `Del`
+
+The list already fires the `onDelete` callback on the `Del` key. To also support `d`, extend the proxy's `HandleKey` to intercept that rune and forward a synthetic delete event to the underlying list:
+
+```go
+func (p *listProxy) HandleKey(ev *oat.KeyEvent) bool {
+	if ev.Key() == tcell.KeyRune {
+		switch ev.Rune() {
+		case 'n':
+			p.app.showNewDialog()
+			return true
+		// highlight-start
+		case 'd':
+			return p.List.HandleKey(tcell.NewEventKey(tcell.KeyDelete, 0, tcell.ModNone))
+		// highlight-end
+		}
+	}
+	return p.List.HandleKey(ev)
+}
+```
+
+Add the hint to `KeyBindings` so it appears in the status bar:
+
+```go
+func (p *listProxy) KeyBindings() []oat.KeyBinding {
+	return append(
+		[]oat.KeyBinding{
+			{Key: tcell.KeyRune, Rune: 'n', Label: "n", Description: "New task"},
+			// highlight-next-line
+			{Key: tcell.KeyRune, Rune: 'd', Label: "d", Description: "Delete task"},
+		},
+		p.List.KeyBindings()...,
+	)
+}
+```
+
+:::tip Synthetic events
+`tcell.NewEventKey(tcell.KeyDelete, 0, tcell.ModNone)` constructs a key event identical to what the terminal sends when the user presses `Del`. The proxy simply re-routes the `d` keypress through the same `List.HandleKey` path — no duplication of delete logic required.
 :::
 
 ---
@@ -516,16 +564,21 @@ func (a *App) showNewDialog() {
 	)
 }
 
-// listProxy intercepts 'n' to open the new-task dialog.
+// listProxy intercepts 'n' and 'd' before delegating to the list.
 type listProxy struct {
 	*widget.List
 	app *App
 }
 
 func (p *listProxy) HandleKey(ev *oat.KeyEvent) bool {
-	if ev.Key() == tcell.KeyRune && ev.Rune() == 'n' {
-		p.app.showNewDialog()
-		return true
+	if ev.Key() == tcell.KeyRune {
+		switch ev.Rune() {
+		case 'n':
+			p.app.showNewDialog()
+			return true
+		case 'd':
+			return p.List.HandleKey(tcell.NewEventKey(tcell.KeyDelete, 0, tcell.ModNone))
+		}
 	}
 	return p.List.HandleKey(ev)
 }
@@ -534,6 +587,7 @@ func (p *listProxy) KeyBindings() []oat.KeyBinding {
 	return append(
 		[]oat.KeyBinding{
 			{Key: tcell.KeyRune, Rune: 'n', Label: "n", Description: "New task"},
+			{Key: tcell.KeyRune, Rune: 'd', Label: "d", Description: "Delete task"},
 		},
 		p.List.KeyBindings()...,
 	)
@@ -563,22 +617,36 @@ func main() {
 	proxy     := &listProxy{List: a.list, app: a}
 	body      := layout.NewBorder(proxy).WithTitle("Tasks")
 	statusBar := widget.NewStatusBar()
+	a.notifs   = widget.NewNotificationManager()
 
 	a.canvas = oat.NewCanvas(
 		oat.WithTheme(latte.ThemeDark),
 		oat.WithBody(body),
 		oat.WithAutoStatusBar(statusBar),
 		oat.WithPrimary(proxy),
+		oat.WithNotificationManager(a.notifs),
 	)
-
-	a.notifs = widget.NewNotificationManager()
-	a.notifs.SetNotifyChannel(a.canvas.NotifyChannel())
-	a.canvas.ShowPersistentOverlay(a.notifs)
 
 	if err := a.canvas.Run(); err != nil {
 		log.Fatal(err)
 	}
 }
+```
+
+---
+
+## Run this example
+
+The finished task-list app is included in the oat-latte repository. You can run it directly without cloning:
+
+```sh
+go run github.com/antoniocali/oat-latte/cmd/example/tasklist
+```
+
+Or, if you have the repo checked out:
+
+```sh
+make run-tasklist
 ```
 
 ---

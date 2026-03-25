@@ -194,6 +194,7 @@ app := oat.NewCanvas(
     oat.WithBody(bodyComponent),
     oat.WithAutoStatusBar(statusBar),   // auto-populates footer with key hints
     oat.WithPrimary(firstFocusable),    // override DFS-first focus
+    oat.WithNotificationManager(notifs), // wires channel + mounts as persistent overlay
     oat.WithGlobalKeyBinding(           // app-wide shortcut (see below)
         oat.KeyBinding{
             Key: tcell.KeyCtrlT, Label: "^T", Description: "Toggle theme",
@@ -220,7 +221,6 @@ app.FocusByRef(target Focusable)       // jump focus to a specific widget
 app.GetWidgetByID(id string) Component
 app.GetValue(id string) (interface{}, bool)
 app.InvalidateLayout()                 // force full focus re-collection (after tree mutation)
-app.NotifyChannel() chan<- time.Time   // send to trigger a re-render from a goroutine
 ```
 
 ### Layout regions
@@ -409,9 +409,12 @@ pb.SetValue(0.75)    // 0.0 – 1.0
 
 ```go
 notifs := widget.NewNotificationManager()
-notifs.SetNotifyChannel(app.NotifyChannel())
 
-app.ShowPersistentOverlay(notifs)   // mount as persistent overlay (never dismissed by Esc)
+app := oat.NewCanvas(
+    oat.WithTheme(latte.ThemeDark),
+    oat.WithBody(body),
+    oat.WithNotificationManager(notifs),  // wires channel + mounts as persistent overlay
+)
 
 notifs.Push("Saved", widget.NotificationKindSuccess, 2*time.Second)
 notifs.Push("Error!", widget.NotificationKindError, 0)  // 0 = no auto-dismiss
@@ -654,9 +657,12 @@ panel := layout.NewBorder(editorVBox).WithTitle("Editor")
 
 ```go
 notifs := widget.NewNotificationManager()
-app := oat.NewCanvas(oat.WithTheme(latte.ThemeDark), oat.WithBody(body))
-notifs.SetNotifyChannel(app.NotifyChannel())
-app.ShowPersistentOverlay(notifs)   // mount permanently (never dismissed by Esc)
+
+app := oat.NewCanvas(
+    oat.WithTheme(latte.ThemeDark),
+    oat.WithBody(body),
+    oat.WithNotificationManager(notifs),  // wires channel + mounts as persistent overlay
+)
 
 // later, from any callback:
 notifs.Push("Saved successfully", widget.NotificationKindSuccess, 2*time.Second)
@@ -686,6 +692,7 @@ func (a *App) build() {
         oat.WithBody(body),
         oat.WithAutoStatusBar(statusBar),
         oat.WithPrimary(primaryFocusable),
+        oat.WithNotificationManager(a.notifs),  // wires channel + mounts as persistent overlay
         oat.WithGlobalKeyBinding(oat.KeyBinding{
             Key:         tcell.KeyCtrlT,
             Label:       "^T",
@@ -696,9 +703,6 @@ func (a *App) build() {
             },
         }),
     )
-
-    a.notifs.SetNotifyChannel(a.canvas.NotifyChannel())
-    a.canvas.ShowPersistentOverlay(a.notifs)
 }
 
 func main() {
@@ -719,7 +723,7 @@ func main() {
 - `BorderExplicitNone` (`-1`) actively suppresses a border. Check both `BorderNone` and `BorderExplicitNone` in render guards.
 - `Style.Merge` preserves `BorderExplicitNone` through the cascade — do not use direct struct assignment in `ApplyTheme`.
 - `Canvas.InvalidateLayout()` must be called after any dynamic addition or removal of components from the tree to re-collect focusable nodes.
-- Key event handlers run on the main goroutine. Use `app.NotifyChannel()` to trigger re-renders from background goroutines.
-- `app.ShowPersistentOverlay(notifs)` mounts `NotificationManager` as a persistent (non-modal) overlay. It is never dismissed by Esc and always renders on top of modal dialogs.
+- Key event handlers run on the main goroutine. Use background goroutines safely by pushing to `notifs` directly; `WithNotificationManager` wires the re-render channel automatically.
+- `oat.WithNotificationManager(notifs)` mounts `NotificationManager` as a persistent (non-modal) overlay. It is never dismissed by Esc and always renders on top of modal dialogs.
 - Global bindings registered with `WithGlobalKeyBinding` fire **after** the focused widget. A widget can shadow a global binding by returning `true` from `HandleKey`.
 - `app.SetTheme(t)` re-applies the theme to the entire tree including all overlays and persistent overlays. It resets the canvas background style so the new theme's `Canvas` token takes effect.

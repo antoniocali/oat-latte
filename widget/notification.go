@@ -28,17 +28,23 @@ type notificationEntry struct {
 // NotificationManager renders a stack of toast-style banners anchored to the
 // bottom-right corner of whatever region it is given.
 //
-// It is designed to be an overlay component registered with Canvas:
+// Mount it via oat.WithNotificationManager, which wires the Canvas event loop
+// and mounts the manager as a persistent overlay in a single step:
 //
-//	nm := widget.NewNotificationManager()
-//	canvas.ShowPersistentOverlay(nm) // mount as a persistent overlay (never dismissed by Esc)
+//	notifs := widget.NewNotificationManager()
+//
+//	app := oat.NewCanvas(
+//	    oat.WithTheme(latte.ThemeDark),
+//	    oat.WithBody(body),
+//	    oat.WithNotificationManager(notifs),
+//	)
 //
 //	// Show a timed notification:
-//	nm.Push("Task saved!", widget.NotificationKindSuccess, 3*time.Second)
+//	notifs.Push("Task saved!", widget.NotificationKindSuccess, 3*time.Second)
 //
 // Each notification is a single line of text drawn with the appropriate
 // theme colour.  Notifications with a non-zero duration are automatically
-// removed from the queue; the manager posts to the Canvas notification channel
+// removed from the queue; the manager sends to the Canvas notify channel
 // so the screen refreshes without requiring a key press.
 //
 // NotificationManager is safe for concurrent use.
@@ -53,8 +59,8 @@ type NotificationManager struct {
 	styleWarning latte.Style
 	styleError   latte.Style
 
-	// notifyCh is the Canvas.NotifyChannel(); used to trigger re-renders on
-	// timer expiry.  Set via SetNotifyChannel.
+	// notifyCh is wired by Canvas via WithNotificationManager; used to trigger
+	// re-renders on timer expiry.
 	notifyCh chan<- time.Time
 }
 
@@ -65,11 +71,9 @@ func NewNotificationManager() *NotificationManager {
 	return nm
 }
 
-// SetNotifyChannel wires the manager to the Canvas event loop so that timer
-// expiry triggers an automatic re-render.  Call this after constructing the
-// Canvas:
-//
-//	nm.SetNotifyChannel(canvas.NotifyChannel())
+// SetNotifyChannel implements oat.NotificationOverlay.  It is called
+// automatically by oat.WithNotificationManager during Canvas construction —
+// callers should not invoke this method directly.
 func (nm *NotificationManager) SetNotifyChannel(ch chan<- time.Time) {
 	nm.mu.Lock()
 	nm.notifyCh = ch

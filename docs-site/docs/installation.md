@@ -64,9 +64,10 @@ Press `Esc` or `Ctrl+C` to quit.
 
 ## Example apps
 
-The repository ships two full example applications:
+The repository ships three full example applications:
 
 ```bash
+go run github.com/antoniocali/oat-latte/cmd/example/tasklist
 go run github.com/antoniocali/oat-latte/cmd/example/notes
 go run github.com/antoniocali/oat-latte/cmd/example/kanban
 ```
@@ -74,6 +75,7 @@ go run github.com/antoniocali/oat-latte/cmd/example/kanban
 Or, if you have cloned the repo:
 
 ```bash
+make run-tasklist
 make run-notes
 make run-kanban
 ```
