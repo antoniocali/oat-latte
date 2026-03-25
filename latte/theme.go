@@ -120,6 +120,131 @@ type Theme struct {
 	Scrim Style
 }
 
+// ── Theme builder methods ────────────────────────────────────────────────────
+//
+// Every method returns a new Theme by value, leaving the receiver unchanged.
+// Style-typed tokens are merged using Style.Merge — non-zero fields in the
+// supplied Style override the existing token; zero fields are left unchanged.
+// This means you can make a targeted tweak without clobbering the rest of a
+// token's properties:
+//
+//	// Nord but with no borders anywhere
+//	borderless := latte.ThemeNord.
+//	    WithPanel(latte.Style{Border: latte.BorderExplicitNone}).
+//	    WithInput(latte.Style{Border: latte.BorderExplicitNone}).
+//	    WithButton(latte.Style{Border: latte.BorderExplicitNone}).
+//	    WithDialog(latte.Style{Border: latte.BorderExplicitNone})
+//
+//	// Dark theme with a hot-pink accent
+//	pink := latte.ThemeDark.
+//	    WithAccent(latte.Style{FG: latte.Hex("#ff69b4")}).
+//	    WithFocusBorder(latte.Hex("#ff69b4")).
+//	    WithName("dark-pink")
+
+// WithName returns a copy of the theme with Name set to n.
+func (t Theme) WithName(n string) Theme { t.Name = n; return t }
+
+// WithCanvas merges s into the Canvas token and returns the updated theme.
+func (t Theme) WithCanvas(s Style) Theme { t.Canvas = t.Canvas.Merge(s); return t }
+
+// WithText merges s into the Text token and returns the updated theme.
+func (t Theme) WithText(s Style) Theme { t.Text = t.Text.Merge(s); return t }
+
+// WithMuted merges s into the Muted token and returns the updated theme.
+func (t Theme) WithMuted(s Style) Theme { t.Muted = t.Muted.Merge(s); return t }
+
+// WithAccent merges s into the Accent token and returns the updated theme.
+func (t Theme) WithAccent(s Style) Theme { t.Accent = t.Accent.Merge(s); return t }
+
+// WithSuccess merges s into the Success token and returns the updated theme.
+func (t Theme) WithSuccess(s Style) Theme { t.Success = t.Success.Merge(s); return t }
+
+// WithWarning merges s into the Warning token and returns the updated theme.
+func (t Theme) WithWarning(s Style) Theme { t.Warning = t.Warning.Merge(s); return t }
+
+// WithError merges s into the Error token and returns the updated theme.
+func (t Theme) WithError(s Style) Theme { t.Error = t.Error.Merge(s); return t }
+
+// WithPanel merges s into the Panel token and returns the updated theme.
+func (t Theme) WithPanel(s Style) Theme { t.Panel = t.Panel.Merge(s); return t }
+
+// WithPanelTitle merges s into the PanelTitle token and returns the updated theme.
+func (t Theme) WithPanelTitle(s Style) Theme { t.PanelTitle = t.PanelTitle.Merge(s); return t }
+
+// WithInput merges s into the Input token and returns the updated theme.
+func (t Theme) WithInput(s Style) Theme { t.Input = t.Input.Merge(s); return t }
+
+// WithInputFocus merges s into the InputFocus token and returns the updated theme.
+func (t Theme) WithInputFocus(s Style) Theme { t.InputFocus = t.InputFocus.Merge(s); return t }
+
+// WithListSelected merges s into the ListSelected token and returns the updated theme.
+func (t Theme) WithListSelected(s Style) Theme {
+	t.ListSelected = t.ListSelected.Merge(s)
+	return t
+}
+
+// WithButton merges s into the Button token and returns the updated theme.
+func (t Theme) WithButton(s Style) Theme { t.Button = t.Button.Merge(s); return t }
+
+// WithButtonFocus merges s into the ButtonFocus token and returns the updated theme.
+func (t Theme) WithButtonFocus(s Style) Theme { t.ButtonFocus = t.ButtonFocus.Merge(s); return t }
+
+// WithCheckBox merges s into the CheckBox token and returns the updated theme.
+func (t Theme) WithCheckBox(s Style) Theme { t.CheckBox = t.CheckBox.Merge(s); return t }
+
+// WithCheckBoxFocus merges s into the CheckBoxFocus token and returns the updated theme.
+func (t Theme) WithCheckBoxFocus(s Style) Theme {
+	t.CheckBoxFocus = t.CheckBoxFocus.Merge(s)
+	return t
+}
+
+// WithHeader merges s into the Header token and returns the updated theme.
+func (t Theme) WithHeader(s Style) Theme { t.Header = t.Header.Merge(s); return t }
+
+// WithFooter merges s into the Footer token and returns the updated theme.
+func (t Theme) WithFooter(s Style) Theme { t.Footer = t.Footer.Merge(s); return t }
+
+// WithFocusBorder sets the FocusBorder colour and returns the updated theme.
+// Unlike the Style-typed tokens this field is a plain Color, so it is replaced
+// rather than merged.
+func (t Theme) WithFocusBorder(c Color) Theme { t.FocusBorder = c; return t }
+
+// WithDialog merges s into the Dialog token and returns the updated theme.
+func (t Theme) WithDialog(s Style) Theme { t.Dialog = t.Dialog.Merge(s); return t }
+
+// WithDialogTitle merges s into the DialogTitle token and returns the updated theme.
+func (t Theme) WithDialogTitle(s Style) Theme { t.DialogTitle = t.DialogTitle.Merge(s); return t }
+
+// WithScrim merges s into the Scrim token and returns the updated theme.
+func (t Theme) WithScrim(s Style) Theme { t.Scrim = t.Scrim.Merge(s); return t }
+
+// WithTag merges s into the Tag token and returns the updated theme.
+func (t Theme) WithTag(s Style) Theme { t.Tag = t.Tag.Merge(s); return t }
+
+// WithNotificationInfo merges s into the NotificationInfo token and returns the updated theme.
+func (t Theme) WithNotificationInfo(s Style) Theme {
+	t.NotificationInfo = t.NotificationInfo.Merge(s)
+	return t
+}
+
+// WithNotificationSuccess merges s into the NotificationSuccess token and returns the updated theme.
+func (t Theme) WithNotificationSuccess(s Style) Theme {
+	t.NotificationSuccess = t.NotificationSuccess.Merge(s)
+	return t
+}
+
+// WithNotificationWarning merges s into the NotificationWarning token and returns the updated theme.
+func (t Theme) WithNotificationWarning(s Style) Theme {
+	t.NotificationWarning = t.NotificationWarning.Merge(s)
+	return t
+}
+
+// WithNotificationError merges s into the NotificationError token and returns the updated theme.
+func (t Theme) WithNotificationError(s Style) Theme {
+	t.NotificationError = t.NotificationError.Merge(s)
+	return t
+}
+
 // ── Built-in themes ─────────────────────────────────────────────────────────
 
 // ThemeDefault uses the terminal's native ANSI-16 palette.
