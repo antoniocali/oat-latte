@@ -1,4 +1,4 @@
-.PHONY: build test cover vet fmt check clean run-notes run-kanban \
+.PHONY: build test cover vet fmt check clean run-notes run-kanban run-tasklist \
         docs-install docs-start docs-build docs-serve docs-clean help
 
 # ANSI colours
@@ -36,6 +36,9 @@ run-notes:   ## Run the Notes example app
 
 run-kanban:  ## Run the Kanban example app
 	go run ./cmd/example/kanban
+
+run-tasklist: ## Run the Task List example app
+	go run ./cmd/example/tasklist
 
 # ── Cleanup ────────────────────────────────────────────────────────
 

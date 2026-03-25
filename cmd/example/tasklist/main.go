@@ -97,9 +97,14 @@ type listProxy struct {
 }
 
 func (p *listProxy) HandleKey(ev *oat.KeyEvent) bool {
-	if ev.Key() == tcell.KeyRune && ev.Rune() == 'n' {
-		p.app.showNewDialog()
-		return true
+	if ev.Key() == tcell.KeyRune {
+		switch ev.Rune() {
+		case 'n':
+			p.app.showNewDialog()
+			return true
+		case 'd':
+			return p.List.HandleKey(tcell.NewEventKey(tcell.KeyDelete, 0, tcell.ModNone))
+		}
 	}
 	return p.List.HandleKey(ev)
 }
@@ -108,6 +113,7 @@ func (p *listProxy) KeyBindings() []oat.KeyBinding {
 	return append(
 		[]oat.KeyBinding{
 			{Key: tcell.KeyRune, Rune: 'n', Label: "n", Description: "New task"},
+			{Key: tcell.KeyRune, Rune: 'd', Label: "d", Description: "Delete task"},
 		},
 		p.List.KeyBindings()...,
 	)

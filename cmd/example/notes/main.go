@@ -489,6 +489,8 @@ func (p *noteListProxy) HandleKey(ev *oat.KeyEvent) bool {
 			p.app.setEditorMode(true)
 			p.app.canvas.FocusByRef(p.app.titleGuard)
 			return true
+		case 'd':
+			return p.List.HandleKey(tcell.NewEventKey(tcell.KeyDelete, 0, tcell.ModNone))
 		}
 	}
 	return p.List.HandleKey(ev)
@@ -503,6 +505,7 @@ func (p *noteListProxy) KeyBindings() []oat.KeyBinding {
 	extra := []oat.KeyBinding{
 		{Key: tcell.KeyRune, Rune: 'n', Label: "n", Description: "New note"},
 		{Key: tcell.KeyRune, Rune: 'e', Label: "e", Description: "Edit note"},
+		{Key: tcell.KeyRune, Rune: 'd', Label: "d", Description: "Delete note"},
 	}
 	return append(extra, base...)
 }
