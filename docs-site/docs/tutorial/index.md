@@ -138,6 +138,30 @@ Run it. Use **↑ ↓** to move the cursor, **Esc** to quit.
 `layout.NewBorder` wraps any component in a titled box. `WithPrimary(list)` tells the canvas to give focus to the list on startup rather than picking the first focusable it finds in the tree.
 :::
 
+:::tip Customising the list cursor and highlight
+By default the list draws `>` next to the selected row and fills it with the theme's selection colour. Both are optional:
+
+```go
+list := widget.NewList(items).
+    WithCursor("▶").         // any string — "→", "•", "❯", or "" to hide it
+    WithHighlight(false)     // keep the cursor glyph but drop the background fill
+```
+
+`WithCursor("")` hides the gutter symbol entirely; `WithHighlight(false)` keeps it but removes the coloured background — useful for minimal or transparent UIs.
+:::
+
+:::tip Positioning the border title
+`WithTitle` accepts an optional anchor as a second argument:
+
+```go
+layout.NewBorder(list).WithTitle("Tasks")                      // left (default)
+layout.NewBorder(list).WithTitle("Tasks", oat.AnchorCenter)    // centred
+layout.NewBorder(list).WithTitle("Tasks", oat.AnchorRight)     // right
+```
+
+Omitting the anchor always defaults to `oat.AnchorLeft`, so existing code needs no changes.
+:::
+
 ---
 
 ## Step 3 — Status bar with key hints

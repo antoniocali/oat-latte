@@ -466,8 +466,9 @@ func (s *Stack) Render(buf *oat.Buffer, region oat.Region) {
 // An optional Title is stamped into the top border line: ╭─ Title ──╮
 type Border struct {
 	oat.BaseComponent
-	child      oat.Component
-	titleStyle latte.Style // style for the title text in the border line
+	child       oat.Component
+	titleStyle  latte.Style // style for the title text in the border line
+	titleAnchor oat.Anchor  // horizontal position of the title (default AnchorLeft)
 }
 
 // NewBorder wraps child with a border using the default (single) border style.
@@ -489,8 +490,13 @@ func (b *Border) WithStyle(s latte.Style) *Border {
 }
 
 // WithTitle sets the label stamped into the top border rule.
-func (b *Border) WithTitle(title string) *Border {
+// anchor is optional and defaults to oat.AnchorLeft when omitted.
+// Pass oat.AnchorCenter or oat.AnchorRight to reposition the title.
+func (b *Border) WithTitle(title string, anchor ...oat.Anchor) *Border {
 	b.Title = title
+	if len(anchor) > 0 {
+		b.titleAnchor = anchor[0]
+	}
 	return b
 }
 
@@ -594,7 +600,7 @@ func (b *Border) Render(buf *oat.Buffer, region oat.Region) {
 	if style.BG != latte.ColorDefault {
 		sub.FillBG(style)
 	}
-	sub.DrawBorderTitle(style.Border, b.Title, b.titleStyle, style)
+	sub.DrawBorderTitle(style.Border, b.Title, b.titleStyle, style, b.titleAnchor)
 	if b.child != nil {
 		innerRegion := oat.Region{X: 1, Y: 1, Width: region.Width - 2, Height: region.Height - 2}
 		b.child.Render(sub, innerRegion)

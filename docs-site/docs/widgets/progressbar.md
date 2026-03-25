@@ -1,7 +1,7 @@
 ---
 sidebar_position: 7
 title: ProgressBar
-description: Horizontal progress indicator.
+description: Horizontal progress indicator with configurable percentage label positioning.
 ---
 
 # ProgressBar
@@ -15,29 +15,55 @@ pb := widget.NewProgressBar()
 pb.SetValue(0.65)   // 65%
 ```
 
+## Percentage label
+
+By default the percentage label is shown at the left edge. Use `WithPercentage` to control both visibility and position:
+
+```go
+// Left (default) — " 65% ██████░░░░"
+pb := widget.NewProgressBar().WithPercentage(true)
+
+// Centre — "███ 65% ░░░░"
+pb := widget.NewProgressBar().WithPercentage(true, oat.AnchorCenter)
+
+// Right — "██████░░░░ 65%"
+pb := widget.NewProgressBar().WithPercentage(true, oat.AnchorRight)
+
+// Hidden
+pb := widget.NewProgressBar().WithPercentage(false)
+```
+
+The `anchor` parameter is optional — omit it to get `oat.AnchorLeft` by default.
+
+| Anchor | Layout |
+|---|---|
+| `oat.AnchorLeft` (default) | Label precedes the bar: `" 65% ██░░░░"` |
+| `oat.AnchorCenter` | Label stamped into the midpoint: `"██ 65% ░░"` |
+| `oat.AnchorRight` | Label appended after the bar: `"████░░ 65%"` |
+
+:::note
+`WithShowPercent(bool)` still works as a deprecated shorthand but does not let you set the anchor. Prefer `WithPercentage`.
+:::
+
 ## Builder options
 
 | Method | Description |
 |---|---|
+| `WithPercentage(show bool, anchor ...oat.Anchor)` | Control label visibility and position (default `true`, `AnchorLeft`) |
 | `WithStyle(s latte.Style)` | Override the display style (colour, background) |
 | `WithID(id string)` | Set a stable identifier for `Canvas.GetValue(id)` |
-| `WithShowPercent(show bool)` | Show or hide the `100%` label at the right edge (default `true`) |
 | `WithFillChar(r rune)` | Rune used for the filled portion (default `█`) |
 | `WithEmptyChar(r rune)` | Rune used for the empty portion (default `░`) |
-
-## Hide the percentage label
-
-```go
-pb := widget.NewProgressBar().WithShowPercent(false)
-```
+| `WithShowPercent(show bool)` | Deprecated — use `WithPercentage` instead |
 
 ## Custom fill characters
 
 ```go
 pb := widget.NewProgressBar().
     WithFillChar('=').
-    WithEmptyChar('-')
-// Renders as:  ======-------- 60%
+    WithEmptyChar('-').
+    WithPercentage(true, oat.AnchorRight)
+// Renders as:  ======---- 60%
 ```
 
 ## Per-item colour
@@ -72,13 +98,19 @@ v := pb.Progress() // float64, 0.0–1.0
 
 ## Updating from a goroutine
 
-`SetValue` is safe to call from any goroutine. After updating, send to `app.NotifyChannel()` to trigger a re-render:
+`SetValue` is safe to call from any goroutine. Use `widget.NotificationManager` (via `oat.WithNotificationManager`) to trigger a re-render:
 
 ```go
+notifs := widget.NewNotificationManager()
+app := oat.NewCanvas(
+    oat.WithBody(body),
+    oat.WithNotificationManager(notifs),
+)
+
 go func() {
     for i := 0; i <= 100; i++ {
         pb.SetValue(float64(i) / 100.0)
-        app.NotifyChannel() <- time.Now()
+        notifs.Push("", widget.NotificationKindInfo, time.Millisecond) // triggers re-render
         time.Sleep(50 * time.Millisecond)
     }
 }()

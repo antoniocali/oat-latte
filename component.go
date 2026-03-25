@@ -193,6 +193,19 @@ type IDer interface {
 // GetID returns the component's unique identifier.
 func (b *BaseComponent) GetID() string { return b.ID }
 
+// Anchor controls the horizontal position of an element within its container.
+// It is used for the percentage label in ProgressBar and for the title in Border.
+type Anchor int
+
+const (
+	// AnchorLeft aligns the element to the left edge. This is the default.
+	AnchorLeft Anchor = iota
+	// AnchorCenter centres the element.
+	AnchorCenter
+	// AnchorRight aligns the element to the right edge.
+	AnchorRight
+)
+
 // FocusGuard is an opt-in interface that lets a component dynamically opt out
 // of receiving keyboard focus. When a component implements FocusGuard and
 // IsFocusable returns false, the DFS focus walk skips that node entirely —

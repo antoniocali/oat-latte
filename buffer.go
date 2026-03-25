@@ -1,8 +1,8 @@
 package oat
 
 import (
-	"github.com/gdamore/tcell/v2"
 	"github.com/antoniocali/oat-latte/latte"
+	"github.com/gdamore/tcell/v2"
 )
 
 // Buffer is an abstraction over tcell.Screen that provides
@@ -151,13 +151,14 @@ func (b *Buffer) DrawTextAligned(x, y, width int, text string, align latte.Align
 
 // DrawBorder draws a border around the full buffer region using the given style.
 func (b *Buffer) DrawBorder(borderStyle latte.BorderStyle, style latte.Style) {
-	b.DrawBorderTitle(borderStyle, "", latte.Style{}, style)
+	b.DrawBorderTitle(borderStyle, "", latte.Style{}, style, AnchorLeft)
 }
 
 // DrawBorderTitle draws a border and optionally stamps " title " into the top rule.
-// The title is left-aligned starting at column 2 (after the corner).
+// anchor controls the horizontal position of the title: AnchorLeft (after the
+// opening corner), AnchorCenter, or AnchorRight (before the closing corner).
 // titleStyle is used for the title text; if its FG is ColorDefault the border FG is used.
-func (b *Buffer) DrawBorderTitle(borderStyle latte.BorderStyle, title string, titleStyle latte.Style, style latte.Style) {
+func (b *Buffer) DrawBorderTitle(borderStyle latte.BorderStyle, title string, titleStyle latte.Style, style latte.Style, anchor Anchor) {
 	if borderStyle == latte.BorderNone || borderStyle == latte.BorderExplicitNone || b.clip.Width < 2 || b.clip.Height < 2 {
 		return
 	}
@@ -183,7 +184,7 @@ func (b *Buffer) DrawBorderTitle(borderStyle latte.BorderStyle, title string, ti
 	b.SetCellTcell(0, h-1, runes.BottomLeft, bs)
 	b.SetCellTcell(w-1, h-1, runes.BottomRight, bs)
 
-	// Stamp title into the top border line: ╭─ Title ──────╮
+	// Stamp title into the top border line.
 	if title == "" || w < 6 {
 		return
 	}
@@ -192,7 +193,7 @@ func (b *Buffer) DrawBorderTitle(borderStyle latte.BorderStyle, title string, ti
 	label := " " + title + " "
 	labelRunes := []rune(label)
 
-	// Clamp to available space (leave 2 cells for corners + 1 guard on each side).
+	// Available interior width: leave 2 cells for corners + 1 guard on each side.
 	maxLen := w - 4
 	if len(labelRunes) > maxLen {
 		labelRunes = labelRunes[:maxLen]
@@ -205,7 +206,23 @@ func (b *Buffer) DrawBorderTitle(borderStyle latte.BorderStyle, title string, ti
 		ts = bs
 	}
 
-	startX := 2 // always left-aligned, after ╭─
+	// Compute startX based on anchor.
+	// Interior runs from x=1 to x=w-2 (inclusive). Guard of 1 on each side gives
+	// usable range [2, w-2-len(label)].
+	var startX int
+	labelLen := len(labelRunes)
+	switch anchor {
+	case AnchorRight:
+		startX = w - 2 - labelLen // just before the right corner
+	case AnchorCenter:
+		startX = 1 + (w-2-labelLen)/2
+		if startX < 2 {
+			startX = 2
+		}
+	default: // AnchorLeft
+		startX = 2 // after ╭─
+	}
+
 	for i, r := range labelRunes {
 		b.SetCellTcell(startX+i, 0, r, ts)
 	}

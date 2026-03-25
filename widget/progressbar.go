@@ -13,29 +13,30 @@ import (
 // There are no interactive keybindings; ProgressBar is a display-only widget.
 type ProgressBar struct {
 	oat.BaseComponent
-	value       float64 // 0.0 – 1.0
-	fillChar    rune
-	emptyChar   rune
-	showPercent bool
+	value         float64 // 0.0 – 1.0
+	fillChar      rune
+	emptyChar     rune
+	showPercent   bool
+	percentAnchor oat.Anchor // where the "XX%" label is placed
 }
 
 // NewProgressBar creates a ProgressBar.
+// By default the percentage label is shown at the left edge (AnchorLeft).
 func NewProgressBar() *ProgressBar {
 	p := &ProgressBar{
-		fillChar:    '█',
-		emptyChar:   '░',
-		showPercent: true,
+		fillChar:      '█',
+		emptyChar:     '░',
+		showPercent:   true,
+		percentAnchor: oat.AnchorLeft,
 	}
 	p.EnsureID()
 	return p
 }
 
 // WithStyle sets the display style for this ProgressBar.
-// Call this after construction (or after ApplyTheme) to override the
-// theme-supplied accent colour with a per-instance style.
 func (p *ProgressBar) WithStyle(s latte.Style) *ProgressBar { p.Style = s; return p }
 
-// SetStyle replaces the bar's display style (e.g. to change fill colour per-item).
+// SetStyle replaces the bar's display style.
 // Deprecated: use WithStyle instead.
 func (p *ProgressBar) SetStyle(s latte.Style) { p.Style = s }
 
@@ -51,12 +52,26 @@ func (p *ProgressBar) WithFillChar(r rune) *ProgressBar { p.fillChar = r; return
 // WithEmptyChar sets the rune used for the empty portion.
 func (p *ProgressBar) WithEmptyChar(r rune) *ProgressBar { p.emptyChar = r; return p }
 
-// WithShowPercent controls whether a percentage label is shown at the right edge.
+// WithShowPercent controls whether a percentage label is shown.
+// Deprecated: use WithPercentage instead (it also sets the anchor).
 func (p *ProgressBar) WithShowPercent(show bool) *ProgressBar { p.showPercent = show; return p }
 
+// WithPercentage controls whether a percentage label is rendered and where it
+// appears relative to the bar. anchor is optional and defaults to oat.AnchorLeft.
+//
+//	pb.WithPercentage(true)                    // " 42% ███░░░"  label at the left (default)
+//	pb.WithPercentage(true, oat.AnchorRight)   // "███░░░░ 42%"  label at the right
+//	pb.WithPercentage(true, oat.AnchorCenter)  // "███ 42% ░░░"  label centred inside the bar
+//	pb.WithPercentage(false)                   // no label
+func (p *ProgressBar) WithPercentage(show bool, anchor ...oat.Anchor) *ProgressBar {
+	p.showPercent = show
+	if len(anchor) > 0 {
+		p.percentAnchor = anchor[0]
+	}
+	return p
+}
+
 // ApplyTheme applies theme tokens to the ProgressBar.
-// The bar uses the Accent colour by default; callers that need a specific
-// colour (e.g. per-priority) should call SetStyle after the theme is applied.
 func (p *ProgressBar) ApplyTheme(t latte.Theme) {
 	p.Style = t.Accent
 }
@@ -87,25 +102,46 @@ func (p *ProgressBar) Render(buf *oat.Buffer, region oat.Region) {
 	sub := buf.Sub(region)
 	sub.FillBG(p.Style)
 
-	barWidth := region.Width
+	total := region.Width
+	label := ""
 	if p.showPercent {
-		barWidth -= 5 // reserve "100% "
+		label = fmt.Sprintf(" %3d%%", int(p.value*100)) // " XX%" — always 5 chars
 	}
+	labelLen := len([]rune(label))
+
+	// barWidth is the number of cells dedicated to the fill/empty characters.
+	barWidth := total - labelLen
 	if barWidth < 1 {
 		barWidth = 1
 	}
 
 	filled := int(float64(barWidth) * p.value)
-	var sb strings.Builder
+
+	var bar strings.Builder
 	for i := 0; i < barWidth; i++ {
 		if i < filled {
-			sb.WriteRune(p.fillChar)
+			bar.WriteRune(p.fillChar)
 		} else {
-			sb.WriteRune(p.emptyChar)
+			bar.WriteRune(p.emptyChar)
 		}
 	}
-	if p.showPercent {
-		sb.WriteString(fmt.Sprintf(" %3d%%", int(p.value*100)))
+	barStr := bar.String()
+
+	// Compose the full line according to the percent anchor.
+	var line string
+	switch p.percentAnchor {
+	case oat.AnchorRight:
+		// bar ... label
+		line = barStr + label
+	case oat.AnchorCenter:
+		// Split bar in half, stamp label in the middle.
+		// barWidth is guaranteed ≥ 1; we put the label after the first half.
+		half := barWidth / 2
+		line = barStr[:half] + label + barStr[half:]
+	default: // AnchorLeft
+		// label ... bar
+		line = label + barStr
 	}
-	sub.DrawText(0, 0, sb.String(), p.Style)
+
+	sub.DrawText(0, 0, line, p.Style)
 }

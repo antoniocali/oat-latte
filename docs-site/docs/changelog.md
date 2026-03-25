@@ -4,32 +4,35 @@ sidebar_position: 99
 
 # Changelog
 
-All notable changes to oat-latte are listed here, newest first.
+All notable changes to the oat-latte framework are listed here, newest first.
+
+---
+
+## v0.2.1
+
+**`oat.Anchor` · `ProgressBar.WithPercentage` · `Border.WithTitle` anchor**
+
+### Added
+
+- `oat.Anchor` iota type (`AnchorLeft`, `AnchorCenter`, `AnchorRight`) — general-purpose horizontal-position enum for layout and widget APIs.
+- `(*ProgressBar).WithPercentage(show bool, anchor ...oat.Anchor)` — controls whether the `XX%` label is rendered and where it appears (left, center, or right of the bar fill). `WithShowPercent(bool)` is kept as a deprecated backward-compatible alias.
+- `(*Border).WithTitle(title string, anchor ...oat.Anchor)` — variadic anchor parameter to position the title in the top border rule. Omitting the anchor preserves left-alignment; all existing call sites compile and behave identically.
+- `Buffer.DrawBorderTitle` now accepts a final `anchor Anchor` parameter. Internal callers that do not expose anchor control pass `oat.AnchorLeft` explicitly.
 
 ---
 
 ## v0.2.0
 
-**`WithNotificationManager` canvas option · delete shortcut · tutorial expansion**
+**`WithNotificationManager` canvas option · `oat.NotificationOverlay` interface**
 
 ### Added
 
-- `oat.WithNotificationManager(nm)` — new canvas option that wires the notification re-render channel **and** mounts the manager as a persistent overlay in a single call, replacing the previous two-step `SetNotifyChannel` + `ShowPersistentOverlay` pattern.
-- `oat.NotificationOverlay` interface — introduced to avoid a circular import between the `oat` and `widget` packages.
-- `'d'` key as a delete shortcut in all three example apps (`tasklist`, `notes`, `kanban`), forwarding a synthetic `tcell.KeyDelete` event to `List.HandleKey`.
-- `make run-tasklist` target in the `Makefile`.
-- Tutorial Step 7: documents the synthetic-event technique for custom key aliases.
-- `CONTRIBUTING.md` with setup instructions, code conventions, and PR guidelines.
-
-### Changed
-
-- All example apps updated to the new `WithNotificationManager` API.
-- `README.md` updated with the `run-tasklist` make target and a link to `CONTRIBUTING.md`.
-- `docs/installation.md` updated to list the tasklist example app.
+- `oat.WithNotificationManager(nm)` — canvas option that wires the notification re-render channel and mounts the manager as a persistent overlay in a single call, replacing the previous two-step `SetNotifyChannel` + `ShowPersistentOverlay` pattern.
+- `oat.NotificationOverlay` interface — introduced to decouple the `oat` and `widget` packages and avoid a circular import.
 
 ### Removed
 
-- `app.NotifyChannel()` public method (breaking change — use `WithNotificationManager` instead).
+- `app.NotifyChannel()` public method — use `oat.WithNotificationManager` instead.
 
 ---
 
@@ -40,11 +43,6 @@ All notable changes to oat-latte are listed here, newest first.
 ### Added
 
 - `(*Border).WithRoundedCorner(bool)` — switches the border style to `BorderRounded` (`╭─╮│╰─╯`) when `true`, restores `BorderSingle` when `false`. Panics with an explicit message if called with `true` on `BorderDouble`, `BorderThick`, or `BorderDashed` (Unicode provides arc corner codepoints only for light-weight strokes).
-
-### Changed
-
-- `AGENTS.md`, `docs/layout.md`, and `docs/agents.md` updated with the `WithRoundedCorner` API, a compatibility table, and the panic contract.
-- Navbar version badge border styling removed; the version link now renders as a plain navbar link.
 
 ---
 
@@ -64,4 +62,3 @@ All notable changes to oat-latte are listed here, newest first.
 - `Canvas` with `WithTheme`, `WithHeader`, `WithBody`, `WithAutoStatusBar`, `WithPrimary`, `WithGlobalKeyBinding`, `SetTheme`, `ShowDialog`, `HideDialog`, `FocusByRef`, `InvalidateLayout`.
 - Cooperative focus system with Tab / Shift+Tab cycling, `FocusGuard` for context-sensitive subtrees, and programmatic focus via `FocusByRef`.
 - Three example apps: `tasklist`, `notes`, `kanban`.
-- Full documentation site at [oat-latte.dev](https://oat-latte.dev).

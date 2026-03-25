@@ -97,6 +97,16 @@ Constraint{MaxWidth, MaxHeight int}       // -1 = unconstrained
 Insets{Top, Right, Bottom, Left int}      // padding / margin
 ```
 
+### Anchor
+
+`oat.Anchor` is a general-purpose iota for horizontal positioning used by `ProgressBar.WithPercentage` and `Border.WithTitle`.
+
+```go
+oat.AnchorLeft    // default — left edge
+oat.AnchorCenter  // centred
+oat.AnchorRight   // right edge
+```
+
 ---
 
 ## Style system (latte)
@@ -149,7 +159,7 @@ Check for borders in `Render`:
 
 ```go
 if style.Border != latte.BorderNone && style.Border != latte.BorderExplicitNone {
-    sub.DrawBorderTitle(style.Border, e.Title, latte.Style{}, style)
+    sub.DrawBorderTitle(style.Border, e.Title, latte.Style{}, style, oat.AnchorLeft)
 }
 ```
 
@@ -243,8 +253,12 @@ hbox.AddFlexChild(progressBar, 1)
 
 ```go
 panel := layout.NewBorder(innerComponent).
-    WithTitle("My Panel").
+    WithTitle("My Panel").                          // AnchorLeft by default
     WithTitleStyle(latte.Style{Bold: true})
+
+// Centred title:
+panel := layout.NewBorder(innerComponent).
+    WithTitle("My Panel", oat.AnchorCenter)
 
 // Rounded corners (╭─╮ / ╰─╯) — only valid for BorderSingle:
 panel := layout.NewBorder(innerComponent).
@@ -396,9 +410,19 @@ Renders inline chips separated by `·`.
 
 ```go
 pb := widget.NewProgressBar().
-    WithShowPercent(true)
+    WithPercentage(true)          // show percent at left (default)
 pb.SetValue(0.75)    // 0.0 – 1.0
 ```
+
+`WithPercentage(show bool, anchor ...oat.Anchor)` controls whether a `" XX%"` label is rendered and where. The anchor is optional and defaults to `oat.AnchorLeft`:
+
+| Anchor | Result |
+|---|---|
+| `oat.AnchorLeft` | `" 75% ████░░░░"` — label at the left |
+| `oat.AnchorCenter` | `"████ 75% ░░░░"` — label stamped into the middle of the bar |
+| `oat.AnchorRight` | `"████░░░░ 75%"` — label at the right |
+
+`WithShowPercent(bool)` still works but does not change the anchor. Prefer `WithPercentage`.
 
 ### NotificationManager
 

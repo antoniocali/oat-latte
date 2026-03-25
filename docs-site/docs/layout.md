@@ -71,9 +71,18 @@ The most common pattern: one `AddFlexChild(mainContent, 1)` for the central area
 Wraps a single child with a configurable box border and an optional title stamped into the top rule.
 
 ```go
+// Default — title at the left edge.
 panel := layout.NewBorder(innerComponent).
     WithTitle("My Panel").
     WithTitleStyle(latte.Style{Bold: true})
+
+// Centred title.
+panel := layout.NewBorder(innerComponent).
+    WithTitle("My Panel", oat.AnchorCenter)
+
+// Title at the right edge.
+panel := layout.NewBorder(innerComponent).
+    WithTitle("My Panel", oat.AnchorRight)
 
 // Rounded corners — ╭─ My Panel ──╮ / ╰──────────╯
 panel := layout.NewBorder(innerComponent).
@@ -87,6 +96,22 @@ panel := layout.NewBorder(innerComponent).
 ```
 
 When any descendant of the border is focused, `Border` automatically promotes its border color to the theme's `FocusBorder` token. No extra code needed.
+
+### WithTitle anchor
+
+`WithTitle` accepts an optional `oat.Anchor` as a second argument that controls where the title text is stamped in the top border rule:
+
+```go
+func (b *Border) WithTitle(title string, anchor ...oat.Anchor) *Border
+```
+
+| Anchor | Result |
+|---|---|
+| `oat.AnchorLeft` (default) | `╭─ My Panel ──────────╮` |
+| `oat.AnchorCenter` | `╭──── My Panel ────────╮` |
+| `oat.AnchorRight` | `╭────────── My Panel ──╮` |
+
+Omitting the anchor is the same as passing `oat.AnchorLeft`. This keeps all existing call sites (`WithTitle("My Panel")`) unchanged.
 
 ### WithRoundedCorner
 
