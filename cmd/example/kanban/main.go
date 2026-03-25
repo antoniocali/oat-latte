@@ -396,10 +396,8 @@ func (a *App) build() {
 		oat.WithBody(body),
 		oat.WithAutoStatusBar(a.statusBar),
 		oat.WithPrimary(a.proxies[ColBacklog]),
+		oat.WithNotificationManager(a.notifs),
 	)
-
-	a.notifs.SetNotifyChannel(a.canvas.NotifyChannel())
-	a.canvas.ShowPersistentOverlay(a.notifs)
 
 	a.notifs.Push("Welcome to Kanban! Press [n] to create a card.", widget.NotificationKindInfo, 4*time.Second)
 }

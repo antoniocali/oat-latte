@@ -65,6 +65,19 @@ type statusBarSetter interface {
 	SetBindings([]KeyBinding)
 }
 
+// NotificationOverlay is implemented by any component that can be mounted as a
+// Canvas notification manager.  Satisfying this interface is the only
+// requirement for use with WithNotificationManager.
+//
+// widget.NotificationManager implements this interface.
+type NotificationOverlay interface {
+	Component
+	// SetNotifyChannel receives the Canvas's internal notify channel so that
+	// timer goroutines can trigger re-renders when a timed notification expires.
+	// Called once by WithNotificationManager during Canvas construction.
+	SetNotifyChannel(ch chan<- time.Time)
+}
+
 // CanvasOption configures a Canvas.
 type CanvasOption func(*Canvas)
 
@@ -141,6 +154,31 @@ func WithTheme(t latte.Theme) CanvasOption {
 func WithGlobalKeyBinding(bindings ...KeyBinding) CanvasOption {
 	return func(cv *Canvas) {
 		cv.globalBindings = append(cv.globalBindings, bindings...)
+	}
+}
+
+// WithNotificationManager mounts nm as a persistent overlay and wires it to
+// the canvas event loop so expiring notifications trigger automatic re-renders.
+// This replaces the previous two-step pattern of calling SetNotifyChannel and
+// ShowPersistentOverlay manually.
+//
+// The caller constructs the manager and retains the reference for pushing
+// notifications; the canvas owns the mounting and channel wiring:
+//
+//	notifs := widget.NewNotificationManager()
+//
+//	app := oat.NewCanvas(
+//	    oat.WithTheme(latte.ThemeDark),
+//	    oat.WithBody(body),
+//	    oat.WithNotificationManager(notifs),
+//	)
+//
+//	// later, from any callback:
+//	notifs.Push("Saved", widget.NotificationKindSuccess, 2*time.Second)
+func WithNotificationManager(nm NotificationOverlay) CanvasOption {
+	return func(cv *Canvas) {
+		nm.SetNotifyChannel(cv.notifyCh)
+		cv.persistentOverlays = append(cv.persistentOverlays, nm)
 	}
 }
 
@@ -243,16 +281,6 @@ func (cv *Canvas) FocusByRef(target Focusable) {
 	cv.focus.FocusByRef(target)
 	cv.updateStatusBar()
 }
-
-// NotifyChannel returns the channel that notification timers should send on
-// when a timed notification expires.  The Canvas selects on this channel in
-// its event loop and triggers a re-render, ensuring the notification disappears
-// even when no key is pressed.
-//
-// Usage in a NotificationManager:
-//
-//	time.AfterFunc(duration, func() { canvas.NotifyChannel() <- time.Now() })
-func (cv *Canvas) NotifyChannel() chan<- time.Time { return cv.notifyCh }
 
 // Run initialises the terminal screen, enters the event loop, and blocks until
 // the application quits (Ctrl+C, Esc, or cv.Quit()).

@@ -115,7 +115,6 @@ The canvas divides the terminal vertically: **header → body → footer**. Head
 | `GetWidgetByID(id)` | Look up a widget by its string ID |
 | `GetValue(id)` | Get the current value of a widget by ID |
 | `InvalidateLayout()` | Force focus re-collection after tree mutation |
-| `NotifyChannel()` | Channel to trigger re-renders from goroutines |
 
 ## Buffer
 
@@ -166,6 +165,7 @@ func (a *App) build() {
         oat.WithBody(body),
         oat.WithAutoStatusBar(statusBar),
         oat.WithPrimary(a.list),
+        oat.WithNotificationManager(a.notifs),  // wires channel + mounts as persistent overlay
         oat.WithGlobalKeyBinding(oat.KeyBinding{
             Key:         tcell.KeyCtrlT,
             Label:       "^T",
@@ -176,9 +176,6 @@ func (a *App) build() {
             },
         }),
     )
-
-    a.notifs.SetNotifyChannel(a.canvas.NotifyChannel())
-    a.canvas.ShowPersistentOverlay(a.notifs) // never dismissed by Esc
 }
 
 func main() {

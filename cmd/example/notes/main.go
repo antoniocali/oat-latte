@@ -460,10 +460,8 @@ func (a *App) build() {
 		oat.WithBody(body),
 		oat.WithAutoStatusBar(a.statusBar),
 		oat.WithPrimary(proxy),
+		oat.WithNotificationManager(a.notifs),
 	)
-
-	a.notifs.SetNotifyChannel(a.canvas.NotifyChannel())
-	a.canvas.ShowPersistentOverlay(a.notifs)
 
 	// load first note into editor
 	if len(a.notes) > 0 {

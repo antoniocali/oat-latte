@@ -138,16 +138,15 @@ func main() {
 	body := layout.NewBorder(proxy).WithTitle("Tasks")
 	statusBar := widget.NewStatusBar()
 
+	a.notifs = widget.NewNotificationManager()
+
 	a.canvas = oat.NewCanvas(
 		oat.WithTheme(latte.ThemeDark),
 		oat.WithBody(body),
 		oat.WithAutoStatusBar(statusBar),
 		oat.WithPrimary(proxy),
+		oat.WithNotificationManager(a.notifs),
 	)
-
-	a.notifs = widget.NewNotificationManager()
-	a.notifs.SetNotifyChannel(a.canvas.NotifyChannel())
-	a.canvas.ShowPersistentOverlay(a.notifs)
 
 	if err := a.canvas.Run(); err != nil {
 		log.Fatal(err)

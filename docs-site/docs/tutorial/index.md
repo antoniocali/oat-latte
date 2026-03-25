@@ -386,12 +386,18 @@ Add a `NotificationManager` so the app can show transient success/error toasts.
 notifs *widget.NotificationManager
 ```
 
-Wire it up in `main` after creating the canvas:
+Wire it via `oat.WithNotificationManager` when constructing the canvas:
 
 ```go
 a.notifs = widget.NewNotificationManager()
-a.notifs.SetNotifyChannel(a.canvas.NotifyChannel())
-a.canvas.ShowPersistentOverlay(a.notifs)   // mount permanently — never dismissed by Esc
+
+a.canvas = oat.NewCanvas(
+    oat.WithTheme(latte.ThemeDark),
+    oat.WithBody(body),
+    oat.WithAutoStatusBar(statusBar),
+    oat.WithPrimary(proxy),
+    oat.WithNotificationManager(a.notifs),  // wires channel + mounts as persistent overlay
+)
 ```
 
 Now push a notification after any state change. In `showNewDialog`'s Add callback:
@@ -413,8 +419,8 @@ a.list.SetItems(a.items)
 a.notifs.Push("Task deleted", widget.NotificationKindSuccess, 2*time.Second)
 ```
 
-:::warning Persistent overlay, not a dialog
-Use `ShowPersistentOverlay` for `NotificationManager`. Unlike `ShowDialog`, it is never dismissed by Esc and always renders on top of modal dialogs without blocking input.
+:::tip WithNotificationManager
+`oat.WithNotificationManager(notifs)` handles both wiring the timer channel and mounting the manager as a persistent overlay. There is no need to call `SetNotifyChannel` or `ShowPersistentOverlay` manually.
 :::
 
 ---
@@ -563,17 +569,15 @@ func main() {
 	proxy     := &listProxy{List: a.list, app: a}
 	body      := layout.NewBorder(proxy).WithTitle("Tasks")
 	statusBar := widget.NewStatusBar()
+	a.notifs   = widget.NewNotificationManager()
 
 	a.canvas = oat.NewCanvas(
 		oat.WithTheme(latte.ThemeDark),
 		oat.WithBody(body),
 		oat.WithAutoStatusBar(statusBar),
 		oat.WithPrimary(proxy),
+		oat.WithNotificationManager(a.notifs),
 	)
-
-	a.notifs = widget.NewNotificationManager()
-	a.notifs.SetNotifyChannel(a.canvas.NotifyChannel())
-	a.canvas.ShowPersistentOverlay(a.notifs)
 
 	if err := a.canvas.Run(); err != nil {
 		log.Fatal(err)
