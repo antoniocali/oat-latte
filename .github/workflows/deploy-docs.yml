@@ -6,8 +6,6 @@ on:
       - main
     paths:
       - 'docs-site/**'
-    tags:
-      - 'v*'
   workflow_dispatch:
 
 permissions:
