@@ -30,7 +30,12 @@ jobs:
       - name: Resolve latest version tag
         id: version
         run: |
-          TAG=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          # If triggered from a tag ref, use it directly (most reliable)
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            TAG="${{ github.ref_name }}"
+          else
+            TAG=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          fi
           echo "tag=${TAG:-v0.1.0}" >> "$GITHUB_OUTPUT"
 
       - name: Setup Node
