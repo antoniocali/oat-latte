@@ -143,8 +143,8 @@ var ThemeDefault = Theme{
 	InputFocus: Style{BorderFG: ColorBrightCyan},
 
 	ListSelected:  Style{FG: ColorBrightCyan, Bold: true},
-	Button:        Style{FG: ColorDefault},
-	ButtonFocus:   Focused,
+	Button:        Style{FG: ColorDefault, Border: BorderSingle, BorderFG: ColorBrightBlack},
+	ButtonFocus:   Style{Reverse: true, BorderFG: ColorBrightCyan},
 	CheckBox:      Style{FG: ColorDefault},
 	CheckBoxFocus: Focused,
 
@@ -186,8 +186,8 @@ var ThemeDark = Theme{
 	InputFocus: Style{BorderFG: Hex("#7c9cff")},
 
 	ListSelected:  Style{FG: Hex("#7c9cff"), Bold: true},
-	Button:        Style{FG: ColorDefault},
-	ButtonFocus:   Focused,
+	Button:        Style{FG: ColorDefault, Border: BorderSingle, BorderFG: Hex("#4a5068")},
+	ButtonFocus:   Style{Reverse: true, BorderFG: Hex("#7c9cff")},
 	CheckBox:      Style{FG: Hex("#4ade80")},
 	CheckBoxFocus: Focused,
 
@@ -229,8 +229,8 @@ var ThemeLight = Theme{
 	InputFocus: Style{BorderFG: Hex("#4361ee")},
 
 	ListSelected:  Style{FG: Hex("#4361ee"), Bold: true},
-	Button:        Style{FG: Hex("#1a1a2e")},
-	ButtonFocus:   Style{Reverse: true, Border: BorderSingle, BorderFG: Hex("#4361ee")},
+	Button:        Style{FG: Hex("#1a1a2e"), Border: BorderSingle, BorderFG: Hex("#c8c4be")},
+	ButtonFocus:   Style{Reverse: true, BorderFG: Hex("#4361ee")},
 	CheckBox:      Style{FG: Hex("#2d6a4f")},
 	CheckBoxFocus: Style{Reverse: true, Border: BorderSingle, BorderFG: Hex("#4361ee")},
 
@@ -273,8 +273,8 @@ var ThemeDracula = Theme{
 	InputFocus: Style{BorderFG: Hex("#8be9fd")}, // cyan
 
 	ListSelected:  Style{FG: Hex("#8be9fd"), Bold: true},
-	Button:        Style{FG: Hex("#f8f8f2")},
-	ButtonFocus:   Style{Reverse: true, Border: BorderSingle, BorderFG: Hex("#bd93f9")},
+	Button:        Style{FG: Hex("#f8f8f2"), Border: BorderSingle, BorderFG: Hex("#6272a4")},
+	ButtonFocus:   Style{Reverse: true, BorderFG: Hex("#bd93f9")},
 	CheckBox:      Style{FG: Hex("#50fa7b")},
 	CheckBoxFocus: Style{Reverse: true, Border: BorderSingle, BorderFG: Hex("#bd93f9")},
 
@@ -317,8 +317,8 @@ var ThemeNord = Theme{
 	InputFocus: Style{BorderFG: Hex("#88c0d0")},
 
 	ListSelected:  Style{FG: Hex("#88c0d0"), Bold: true},
-	Button:        Style{FG: Hex("#eceff4")},
-	ButtonFocus:   Style{Reverse: true, Border: BorderSingle, BorderFG: Hex("#88c0d0")},
+	Button:        Style{FG: Hex("#eceff4"), Border: BorderSingle, BorderFG: Hex("#4c566a")},
+	ButtonFocus:   Style{Reverse: true, BorderFG: Hex("#88c0d0")},
 	CheckBox:      Style{FG: Hex("#a3be8c")},
 	CheckBoxFocus: Style{Reverse: true, Border: BorderSingle, BorderFG: Hex("#88c0d0")},
 

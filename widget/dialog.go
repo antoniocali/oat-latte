@@ -191,8 +191,13 @@ func (d *Dialog) maxDimensions(available oat.Region) (int, int) {
 	return maxW, maxH
 }
 
-// Measure returns the dialog's desired size: content + 2 border cells on each
-// axis, clamped to the resolved max dimensions.
+// Measure returns the dialog's desired size.
+//
+// The dialog always occupies its full resolved max dimensions (as set by
+// WithMaxSize or WithSize). Content is never allowed to shrink the dialog below
+// that size — this ensures that percentage-based sizes (e.g. DialogPercent(80))
+// claim the requested fraction of the screen rather than collapsing to the
+// content's natural height.
 func (d *Dialog) Measure(c oat.Constraint) oat.Size {
 	// Build a dummy Region so maxDimensions can resolve percentages.
 	available := oat.Region{Width: c.MaxWidth, Height: c.MaxHeight}
@@ -203,15 +208,7 @@ func (d *Dialog) Measure(c oat.Constraint) oat.Size {
 		available.Height = 0
 	}
 	maxW, maxH := d.maxDimensions(available)
-
-	inner := oat.Constraint{MaxWidth: maxW - 2, MaxHeight: maxH - 2}
-	contentSize := oat.Size{}
-	if d.child != nil {
-		contentSize = d.child.Measure(inner)
-	}
-	w := clamp(contentSize.Width+2, 4, maxW)
-	h := clamp(contentSize.Height+2, 3, maxH)
-	return oat.Size{Width: w, Height: h}
+	return oat.Size{Width: maxW, Height: maxH}
 }
 
 // Render draws the dialog centred in region, painting a scrim over the rest
@@ -222,14 +219,9 @@ func (d *Dialog) Render(buf *oat.Buffer, region oat.Region) {
 	buf.Sub(region).Fill(' ', scrim)
 
 	// 2. Resolve size and centre the dialog.
-	maxW, maxH := d.maxDimensions(region)
-	inner := oat.Constraint{MaxWidth: maxW - 2, MaxHeight: maxH - 2}
-	contentSize := oat.Size{}
-	if d.child != nil {
-		contentSize = d.child.Measure(inner)
-	}
-	w := clamp(contentSize.Width+2, 4, maxW)
-	h := clamp(contentSize.Height+2, 3, maxH)
+	// The dialog always fills its resolved max dimensions; content is scrolled
+	// or clipped within that box rather than being allowed to shrink it.
+	w, h := d.maxDimensions(region)
 
 	x := region.X + (region.Width-w)/2
 	y := region.Y + (region.Height-h)/2

@@ -26,15 +26,18 @@ type Label struct {
 	labels    []string
 	separator rune
 	sepStyle  latte.Style // style for the separator
+	highlight bool        // whether chips render with their background colour
 }
 
 // NewLabel creates a Label displaying the given chip labels.
+// Chip highlight (background colour fill) is enabled by default.
 // Use WithStyle to override the tag chip appearance; by default ApplyTheme
 // fills it in from the active theme.
 func NewLabel(labels []string) *Label {
 	l := &Label{
 		labels:    labels,
 		separator: '·',
+		highlight: true,
 	}
 	l.EnsureID()
 	return l
@@ -48,6 +51,13 @@ func (l *Label) WithID(id string) *Label { l.ID = id; return l }
 
 // WithSeparator overrides the rune drawn between chips (default '·').
 func (l *Label) WithSeparator(r rune) *Label { l.separator = r; return l }
+
+// WithHighlight controls whether chips are rendered with their background
+// colour fill. Defaults to true.
+// Set to false for a plain text appearance where only the foreground colour
+// of the chip style is used — useful when embedding labels inside rows that
+// already have a coloured background.
+func (l *Label) WithHighlight(enabled bool) *Label { l.highlight = enabled; return l }
 
 // SetLabels replaces the displayed chips.
 func (l *Label) SetLabels(labels []string) { l.labels = labels }
@@ -85,16 +95,22 @@ func (l *Label) Measure(c oat.Constraint) oat.Size {
 // Render draws each chip with padding and the separators between them.
 func (l *Label) Render(buf *oat.Buffer, region oat.Region) {
 	sub := buf.Sub(region)
-	// Fill the entire row with the background style first so trailing cells
-	// after the last chip (and the whole row when there are no labels) inherit
-	// the correct background colour instead of leaking the canvas fill.
-	bgStyle := latte.Style{BG: l.Style.BG}
-	sub.FillBG(bgStyle)
+	// Fill with transparent/default background so the parent's background
+	// shows through the gaps between chips and after the last chip.
+	// Using l.Style.BG here would bleed the chip colour across the entire row.
+	sub.FillBG(latte.Style{})
+
+	chipStyle := l.Style
+	if !l.highlight {
+		// Strip background — keep only the foreground colour and text attributes.
+		chipStyle.BG = latte.ColorDefault
+	}
+
 	x := 0
 	sepStr := " " + string(l.separator) + " "
 	for i, lbl := range l.labels {
 		chip := " " + lbl + " "
-		sub.DrawText(x, 0, chip, l.Style)
+		sub.DrawText(x, 0, chip, chipStyle)
 		x += len([]rune(chip))
 		if i < len(l.labels)-1 {
 			sub.DrawText(x, 0, sepStr, l.sepStyle)

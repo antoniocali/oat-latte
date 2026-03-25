@@ -23,6 +23,7 @@ Renders as: `go · tui · terminal`
 | `WithStyle(s latte.Style)` | Override the chip display style |
 | `WithID(id string)` | Set a stable identifier for `Canvas.GetValue(id)` |
 | `WithSeparator(r rune)` | Override the separator rune (default `·`) |
+| `WithHighlight(bool)` | Control whether chips render with a background colour fill (default `true`) |
 
 ## Custom separator
 
@@ -66,3 +67,17 @@ tagsInput.WithOnChange(func(text string) {
 ```
 
 Each chip is styled with the theme's `Tag` token. The separator uses the theme's `Muted` token.
+
+## WithHighlight
+
+`WithHighlight(false)` strips the chip background colour while keeping the foreground colour and text attributes:
+
+```go
+// Default — filled chip background (uses Tag token BG).
+lbl := widget.NewLabel([]string{"go", "tui"})
+
+// No background fill — FG colour and bold/italic are preserved.
+lbl := widget.NewLabel([]string{"go", "tui"}).WithHighlight(false)
+```
+
+Useful for minimal or transparent UIs where a coloured badge background would clash with the surrounding panel.

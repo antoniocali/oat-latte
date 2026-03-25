@@ -796,3 +796,74 @@ func (f *HFill) Measure(_ oat.Constraint) oat.Size { return oat.Size{} }
 
 // Render does nothing; HFill is a pure spacer.
 func (f *HFill) Render(_ *oat.Buffer, _ oat.Region) {}
+
+// ---- FlexChild ------------------------------------------------------------
+
+// FlexChild wraps any Component so it participates in flex space distribution
+// when added to a VBox or HBox via AddChild.  It is the component-bearing
+// counterpart to VFill/HFill: instead of leaving the allocated space empty it
+// renders its inner component into that space.
+//
+// The axis is determined by the container — FlexChild works equally well in
+// both VBox (vertical flex) and HBox (horizontal flex).
+//
+//	// c2 fills remaining vertical space; c1 and c3 keep their natural heights.
+//	vbox := layout.NewVBox(
+//	    c1,
+//	    layout.NewFlexChild(c2),
+//	    c3,
+//	)
+//
+//	// Optional second argument sets the flex weight (default 1).
+//	layout.NewFlexChild(c2, 2)
+type FlexChild struct {
+	oat.BaseComponent
+	child  oat.Component
+	weight int
+}
+
+// NewFlexChild wraps child as a flex-weight component.
+// The optional weight argument (default 1) controls how much of the remaining
+// space this child claims relative to other flex children in the same box.
+func NewFlexChild(child oat.Component, weight ...int) *FlexChild {
+	w := 1
+	if len(weight) > 0 && weight[0] > 1 {
+		w = weight[0]
+	}
+	return &FlexChild{child: child, weight: w}
+}
+
+// FlexWeight satisfies FlexSpacer, causing AddChild to promote this wrapper
+// to a flex slot automatically.
+func (f *FlexChild) FlexWeight() int { return f.weight }
+
+// AddChild sets the inner component (satisfies oat.Layout).
+func (f *FlexChild) AddChild(c oat.Component) { f.child = c }
+
+// Children satisfies oat.Layout so theme propagation and focus collection
+// recurse into the inner component.
+func (f *FlexChild) Children() []oat.Component {
+	if f.child == nil {
+		return nil
+	}
+	return []oat.Component{f.child}
+}
+
+// Measure delegates to the inner component.
+// Called by VBox/HBox during their own Measure pass with MaxHeight/MaxWidth
+// set to -1 (unconstrained on the flex axis); the width/height contribution
+// is used only to size the container on the cross axis.
+func (f *FlexChild) Measure(c oat.Constraint) oat.Size {
+	if f.child == nil {
+		return oat.Size{}
+	}
+	return f.child.Measure(c)
+}
+
+// Render delegates to the inner component using the full allocated region.
+func (f *FlexChild) Render(buf *oat.Buffer, region oat.Region) {
+	if f.child == nil {
+		return
+	}
+	f.child.Render(buf, region)
+}

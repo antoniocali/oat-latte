@@ -50,6 +50,16 @@ When the terminal is resized, percent-based dialogs adapt automatically each ren
 
 `WithMaxSize` is a shorthand for `WithSize(DialogFixed(w), DialogFixed(h))`. When both are called the last call wins. Default size is 60 × 20 cells.
 
+:::tip Dialog always fills its resolved size
+The dialog panel always occupies exactly the dimensions returned by `maxDimensions`. The child component fills the inner region (`width - 2` × `height - 2` after the dialog border). This means percent-based dialogs correctly track terminal size — the panel does **not** shrink to fit content.
+
+When sizing dialogs with `WithMaxSize`, budget for the full VBox contents:
+- Dialog border: 2 rows (top + bottom)
+- `Padding(1)` wrapper: 2 rows (top + bottom)
+- Each fixed child: its natural height (e.g. `Text` = 1 row, `EditText` with hint = 4 rows, `Button` with border = 3 rows)
+- Each flex spacer (`VFill.WithMaxSize(1)`): 1 row
+:::
+
 ## Showing and hiding
 
 ```go

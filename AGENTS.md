@@ -17,7 +17,7 @@ Sub-packages:
 |---|---|
 | `github.com/antoniocali/oat-latte` | Core interfaces, `Canvas`, `Buffer`, `FocusManager`, geometry types |
 | `github.com/antoniocali/oat-latte/latte` | `Style`, `Color`, `BorderStyle`, `Theme`, built-in themes |
-| `github.com/antoniocali/oat-latte/layout` | `VBox`, `HBox`, `Grid`, `Stack`, `Border`, `Padding`, `VFill`, `HFill` |
+| `github.com/antoniocali/oat-latte/layout` | `VBox`, `HBox`, `Grid`, `Stack`, `Border`, `Padding`, `VFill`, `HFill`, `FlexChild` |
 | `github.com/antoniocali/oat-latte/widget` | `Text`, `Title`, `Button`, `CheckBox`, `EditText`, `List`, `Label`, `ProgressBar`, `StatusBar`, `NotificationManager`, `Dialog` |
 
 ---
@@ -249,6 +249,22 @@ hbox := layout.NewHBox(child1, child2)  // variadic shorthand
 hbox.AddFlexChild(progressBar, 1)
 ```
 
+### FlexChild
+
+`layout.NewFlexChild(child, weight...)` wraps any `Component` as a flex slot so it can be passed inline to variadic constructors:
+
+```go
+// Equivalent to: vbox := layout.NewVBox(); vbox.AddChild(title); vbox.AddFlexChild(body, 1); vbox.AddChild(btnRow)
+vbox := layout.NewVBox(
+    title,
+    layout.NewFlexChild(body),   // weight defaults to 1
+    btnRow,
+)
+```
+
+- Weight defaults to `1`; minimum effective weight is `1`.
+- Implements `oat.Layout` via `Children()` — theme propagation and focus collection recurse into the wrapped component automatically.
+
 ### Border
 
 ```go
@@ -337,9 +353,31 @@ Supports word-wrap (bounded by render width) and vertical scroll (`Scrollable`).
 btn := widget.NewButton("Save", func() {
     // pressed
 }).WithID("save-btn")
+
+// With rounded border corners (╭─╮ / ╰─╯):
+btn := widget.NewButton("OK", fn).
+    WithStyle(latte.Style{Border: latte.BorderSingle}).
+    WithRoundedCorner(true)
 ```
 
 Activated by `Enter` or `Space`.
+
+Border presence is determined solely by `b.Style` (the unfocused base style). `FocusStyle` / `ButtonFocus` carry only colour and attribute overrides (e.g. `Reverse: true`, `BorderFG`). This means the button's layout shape — and therefore `Measure` output — is stable regardless of focus state.
+
+When `b.Style` has a border set, `Measure` returns `Height: 3` (top border + label row + bottom border) and the border is drawn at render time. Without a border, `Measure` returns `Height: 1` and the label is rendered as `"[ label ]"`.
+
+All built-in themes set `Button.Border: BorderSingle` so buttons always render with a visible border. `ButtonFocus` carries only `Reverse: true` and an accent `BorderFG` to highlight the active button.
+
+#### WithRoundedCorner
+
+```go
+func (b *Button) WithRoundedCorner(rounded bool) *Button
+```
+
+- `true` — draws border arc corners (`╭╮╰╯`) instead of square ones (`┌┐└┘`).
+- `false` — no-op; arc corners are only applied when `true`.
+- **Panics at render time** if `WithRoundedCorner(true)` is set and the effective border style is `BorderDouble`, `BorderThick`, or `BorderDashed`. Arc corner codepoints exist only for light-weight strokes (`─` `│`).
+- **`WithStyle` panics immediately** at construction time if called with `BorderDouble`, `BorderThick`, or `BorderDashed` — only `BorderNone`, `BorderExplicitNone`, `BorderSingle`, and `BorderRounded` are valid for Button.
 
 ### CheckBox
 
@@ -402,9 +440,14 @@ list.SelectedIndex() int
 ```go
 lbl := widget.NewLabel([]string{"go", "tui"})
 lbl.SetLabels(tags)
+
+// Without background fill (keeps FG colour, strips BG):
+lbl := widget.NewLabel(tags).WithHighlight(false)
 ```
 
 Renders inline chips separated by `·`.
+
+`WithHighlight(false)` strips the chip background colour while keeping the foreground colour and text attributes. Default is `true` (chips render with filled background). The `highlight` setting does not affect the FG colour or bold/italic attributes.
 
 ### ProgressBar
 

@@ -280,7 +280,7 @@ func (a *App) showNewDialog() {
 
 	dlg := widget.NewDialog("New Task").
 		WithChild(body).
-		WithMaxSize(50, 11)
+		WithMaxSize(50, 13)
 
 	a.canvas.ShowDialog(dlg)
 }
@@ -339,6 +339,19 @@ Press **n** to open the dialog, type a name, press **Enter** on the Add button (
 oat-latte uses a **proxy pattern** to add key handling to existing widgets without modifying them. Wrap the widget, override `HandleKey` for the keys you want to intercept, and delegate everything else back to the wrapped widget. `KeyBindings()` exposes the extra hints to the status bar.
 
 See [Focus — The proxy pattern](../focus#the-proxy-pattern) for the full explanation.
+:::
+
+:::tip Sizing dialogs with bordered buttons
+All built-in themes set `Border: BorderSingle` on buttons, so each button always measures `Height: 3` (top border + label + bottom border). When computing `WithMaxSize`, budget:
+
+- **2** for the dialog border
+- **2** for `NewPaddingUniform(..., 1)`
+- **1** per `Text` row
+- **4** per `EditText` with a hint (`WithHint`)
+- **1** per `VFill.WithMaxSize(1)` spacer
+- **3** for the button row
+
+The `showNewDialog` above: 2 + 2 + 1 + 1 + 4 + 1 + 3 = **14** minimum. `WithMaxSize(50, 13)` is slightly under that so the two `VFill` spacers share the one available flex row; the layout still fits comfortably.
 :::
 
 ---
@@ -584,7 +597,7 @@ func (a *App) showNewDialog() {
 	a.canvas.ShowDialog(
 		widget.NewDialog("New Task").
 			WithChild(body).
-			WithMaxSize(50, 11),
+			WithMaxSize(50, 13),
 	)
 }
 
