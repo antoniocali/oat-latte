@@ -184,7 +184,29 @@ latte.ThemeDracula   // true-color, Dracula palette
 latte.ThemeNord      // true-color, Nord arctic palette
 ```
 
-Theme tokens (fields on `latte.Theme`): `Canvas`, `Text`, `Muted`, `Accent`, `Success`, `Warning`, `Error`, `Panel`, `PanelTitle`, `Input`, `InputFocus`, `ListSelected`, `Button`, `ButtonFocus`, `CheckBox`, `CheckBoxFocus`, `Header`, `Footer`, `FocusBorder`, `Dialog`, `DialogTitle`, `Scrim`, `Tag`, `NotificationInfo`, `NotificationSuccess`, `NotificationWarning`, `NotificationError`, `Title`.
+Theme tokens (fields on `latte.Theme`): `Canvas`, `Text`, `Muted`, `Accent`, `Success`, `Warning`, `Error`, `Panel`, `PanelTitle`, `Input`, `InputFocus`, `ListSelected`, `Button`, `ButtonFocus`, `CheckBox`, `CheckBoxFocus`, `Header`, `Footer`, `FocusBorder`, `Dialog`, `DialogTitle`, `Scrim`, `Tag`, `NotificationInfo`, `NotificationSuccess`, `NotificationWarning`, `NotificationError`.
+
+### Theme builder methods
+
+Every `Theme` value exposes a `With<Token>` method for each field. All methods return a new `Theme` by value — the originals are never mutated. Style-typed methods use `Style.Merge` internally so only non-zero fields of the supplied `Style` are applied.
+
+```go
+// Nord but with no borders anywhere
+borderless := latte.ThemeNord.
+    WithPanel(latte.Style{Border: latte.BorderExplicitNone}).
+    WithInput(latte.Style{Border: latte.BorderExplicitNone}).
+    WithButton(latte.Style{Border: latte.BorderExplicitNone}).
+    WithDialog(latte.Style{Border: latte.BorderExplicitNone}).
+    WithName("nord-borderless")
+
+// Dark theme with a custom accent colour
+pink := latte.ThemeDark.
+    WithAccent(latte.Style{FG: latte.Hex("#ff69b4")}).
+    WithFocusBorder(latte.Hex("#ff69b4")).
+    WithName("dark-pink")
+```
+
+`WithFocusBorder` accepts a `Color` directly (not a `Style`) because `FocusBorder` is a plain `Color` field. All other token methods accept a `Style`.
 
 ---
 

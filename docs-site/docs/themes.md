@@ -168,3 +168,77 @@ The framework calls `ApplyTheme` automatically when:
 - `app.SetTheme(t)` is called at runtime.
 
 You do not need to call it yourself.
+
+## Deriving a custom theme
+
+Every built-in theme exposes a `With<Token>` builder method for each of its fields. All methods return a new `Theme` by value — the originals are never mutated.
+
+**Style-typed tokens** accept a `latte.Style` and use `Style.Merge` semantics: only the non-zero fields you supply are overridden; the rest of the token is left exactly as the base theme defined it.
+
+```go
+// Start from a built-in theme and make targeted tweaks.
+myTheme := latte.ThemeNord.
+    WithAccent(latte.Style{FG: latte.Hex("#ff69b4")}).   // swap accent colour only
+    WithFocusBorder(latte.Hex("#ff69b4")).                // keep Nord's FG, just change focus ring
+    WithName("nord-pink")
+```
+
+### Removing borders globally
+
+Pass `latte.Style{Border: latte.BorderExplicitNone}` to the tokens that carry borders. `BorderExplicitNone` propagates through `Merge` and actively suppresses any border that the base theme would draw:
+
+```go
+borderless := latte.ThemeNord.
+    WithPanel(latte.Style{Border: latte.BorderExplicitNone}).
+    WithInput(latte.Style{Border: latte.BorderExplicitNone}).
+    WithButton(latte.Style{Border: latte.BorderExplicitNone}).
+    WithDialog(latte.Style{Border: latte.BorderExplicitNone}).
+    WithName("nord-borderless")
+
+app := oat.NewCanvas(oat.WithTheme(borderless), oat.WithBody(body))
+```
+
+### Changing the background
+
+```go
+deepBlack := latte.ThemeDark.
+    WithCanvas(latte.Style{BG: latte.Hex("#000000")}).
+    WithName("dark-deep")
+```
+
+### Full list of builder methods
+
+| Method | Token type | Notes |
+|---|---|---|
+| `WithName(string)` | — | Sets the theme name |
+| `WithCanvas(Style)` | `Style` | Full-screen background |
+| `WithText(Style)` | `Style` | Body text |
+| `WithMuted(Style)` | `Style` | Secondary / de-emphasised text |
+| `WithAccent(Style)` | `Style` | Primary interactive colour |
+| `WithSuccess(Style)` | `Style` | Positive state |
+| `WithWarning(Style)` | `Style` | Cautionary state |
+| `WithError(Style)` | `Style` | Destructive / critical state |
+| `WithPanel(Style)` | `Style` | `layout.Border` containers |
+| `WithPanelTitle(Style)` | `Style` | Title text in panel borders |
+| `WithInput(Style)` | `Style` | `widget.EditText` base |
+| `WithInputFocus(Style)` | `Style` | `widget.EditText` focused overlay |
+| `WithListSelected(Style)` | `Style` | `widget.List` selected row |
+| `WithButton(Style)` | `Style` | `widget.Button` base |
+| `WithButtonFocus(Style)` | `Style` | `widget.Button` focused overlay |
+| `WithCheckBox(Style)` | `Style` | `widget.CheckBox` base |
+| `WithCheckBoxFocus(Style)` | `Style` | `widget.CheckBox` focused overlay |
+| `WithHeader(Style)` | `Style` | Canvas header region |
+| `WithFooter(Style)` | `Style` | Canvas footer / status bar |
+| `WithFocusBorder(Color)` | `Color` | Border colour when a descendant is focused |
+| `WithDialog(Style)` | `Style` | `widget.Dialog` panel |
+| `WithDialogTitle(Style)` | `Style` | Title text inside a dialog |
+| `WithScrim(Style)` | `Style` | Full-screen backdrop behind dialogs |
+| `WithTag(Style)` | `Style` | `widget.Label` chip badges |
+| `WithNotificationInfo(Style)` | `Style` | Info notification banner |
+| `WithNotificationSuccess(Style)` | `Style` | Success notification banner |
+| `WithNotificationWarning(Style)` | `Style` | Warning notification banner |
+| `WithNotificationError(Style)` | `Style` | Error notification banner |
+
+:::tip WithFocusBorder takes a Color, not a Style
+`FocusBorder` is a plain `Color` field (used as a `BorderFG` override inside `layout.Border`), so its builder accepts a `Color` directly rather than a `Style`. All other tokens accept a `Style`.
+:::

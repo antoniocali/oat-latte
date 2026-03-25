@@ -8,6 +8,38 @@ All notable changes to the oat-latte framework are listed here, newest first.
 
 ---
 
+## v0.2.4
+
+**`Theme` fluent builder methods**
+
+### Added
+
+- `(Theme).WithName(string) Theme` — returns a copy of the theme with a new name, useful when naming a derived theme.
+- `(Theme).WithFocusBorder(Color) Theme` — replaces the `FocusBorder` colour (a plain `Color`, not a `Style`).
+- One `With<Token>(latte.Style) Theme` method for every `Style`-typed field on `Theme`: `WithCanvas`, `WithText`, `WithMuted`, `WithAccent`, `WithSuccess`, `WithWarning`, `WithError`, `WithPanel`, `WithPanelTitle`, `WithInput`, `WithInputFocus`, `WithListSelected`, `WithButton`, `WithButtonFocus`, `WithCheckBox`, `WithCheckBoxFocus`, `WithHeader`, `WithFooter`, `WithDialog`, `WithDialogTitle`, `WithScrim`, `WithTag`, `WithNotificationInfo`, `WithNotificationSuccess`, `WithNotificationWarning`, `WithNotificationError`.
+
+All methods return `Theme` by value — built-in theme variables (`ThemeDark`, `ThemeNord`, etc.) are never mutated. Style-typed methods use `Style.Merge` internally so only the non-zero fields of the supplied `Style` are applied; the rest of the token is preserved.
+
+```go
+// Nord but with no borders anywhere
+borderless := latte.ThemeNord.
+    WithPanel(latte.Style{Border: latte.BorderExplicitNone}).
+    WithInput(latte.Style{Border: latte.BorderExplicitNone}).
+    WithButton(latte.Style{Border: latte.BorderExplicitNone}).
+    WithDialog(latte.Style{Border: latte.BorderExplicitNone}).
+    WithName("nord-borderless")
+
+// Dark theme with a custom accent and focus colour
+pink := latte.ThemeDark.
+    WithAccent(latte.Style{FG: latte.Hex("#ff69b4")}).
+    WithFocusBorder(latte.Hex("#ff69b4")).
+    WithName("dark-pink")
+
+app.SetTheme(borderless)
+```
+
+---
+
 ## v0.2.3
 
 **`layout.FlexChild` · `Button.WithRoundedCorner` · `Label.WithHighlight` · `Dialog` percent-height fix · `Button` render fix · Label `FillBG` fix**
