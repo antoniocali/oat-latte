@@ -68,7 +68,6 @@ const config: Config = {
           href: `https://github.com/antoniocali/oat-latte/releases/tag/${latestVersion}`,
           label: latestVersion,
           position: 'right',
-          className: 'navbar-version-badge',
         },
         {
           href: 'https://github.com/antoniocali/oat-latte',
