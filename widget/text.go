@@ -107,7 +107,7 @@ func (t *Text) Render(buf *oat.Buffer, region oat.Region) {
 
 	// Draw border if specified.
 	if t.Style.Border != latte.BorderNone && t.Style.Border != latte.BorderExplicitNone {
-		sub.DrawBorderTitle(t.Style.Border, t.Title, latte.Style{}, t.Style)
+		sub.DrawBorderTitle(t.Style.Border, t.Title, latte.Style{}, t.Style, oat.AnchorLeft)
 	}
 
 	sub.FillBG(t.Style)

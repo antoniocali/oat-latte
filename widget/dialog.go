@@ -247,7 +247,7 @@ func (d *Dialog) Render(buf *oat.Buffer, region oat.Region) {
 	sub.FillBG(d.Style)
 
 	// 4. Draw border + title.
-	sub.DrawBorderTitle(d.Style.Border, d.Title, d.titleStyle, d.Style)
+	sub.DrawBorderTitle(d.Style.Border, d.Title, d.titleStyle, d.Style, oat.AnchorLeft)
 
 	// 5. Render child inside the border.
 	if d.child != nil {

@@ -172,7 +172,7 @@ func (l *List) Render(buf *oat.Buffer, region oat.Region) {
 
 	borderInset := 0
 	if style.Border != latte.BorderNone && style.Border != latte.BorderExplicitNone {
-		sub.DrawBorderTitle(style.Border, l.Title, latte.Style{}, style)
+		sub.DrawBorderTitle(style.Border, l.Title, latte.Style{}, style, oat.AnchorLeft)
 		borderInset = 1
 	}
 

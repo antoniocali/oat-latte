@@ -35,6 +35,8 @@ Constraint{MaxWidth, MaxHeight int} // available space; -1 = unconstrained
 Insets{Top, Right, Bottom, Left int} // padding / margin
 ```
 
+`oat.Anchor` is a horizontal-position enum (`AnchorLeft`, `AnchorCenter`, `AnchorRight`) used by `Border.WithTitle` and `ProgressBar.WithPercentage` to control where text is placed inside a bar or border rule.
+
 ## Layout
 
 A `Component` that holds children also implements `Layout`:

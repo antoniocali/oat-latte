@@ -275,7 +275,7 @@ func (e *EditText) Render(buf *oat.Buffer, region oat.Region) {
 	// all four sides. Content must be offset by 1 to stay inside the border.
 	borderInset := 0
 	if style.Border != latte.BorderNone && style.Border != latte.BorderExplicitNone {
-		sub.DrawBorderTitle(style.Border, e.Title, latte.Style{}, style)
+		sub.DrawBorderTitle(style.Border, e.Title, latte.Style{}, style, oat.AnchorLeft)
 		borderInset = 1
 	}
 
