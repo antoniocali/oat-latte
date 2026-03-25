@@ -501,6 +501,38 @@ func (b *Border) WithTitleStyle(s latte.Style) *Border {
 	return b
 }
 
+// WithRoundedCorner controls whether the border uses rounded corners (╭╮╰╯)
+// instead of the default square ones (┌┐└┘).
+//
+// Calling WithRoundedCorner(true) switches the border style to BorderRounded.
+// Calling WithRoundedCorner(false) on a rounded border restores BorderSingle.
+//
+// Panics if rounded is true and the current border style is BorderDouble,
+// BorderThick, or BorderDashed: Unicode provides arc corner codepoints only
+// for light-weight strokes (─ │), so they cannot connect to double (═ ║),
+// heavy (━ ┃), or dashed (╌ ╎) lines without producing a broken visual.
+// Use WithStyle(latte.Style{Border: latte.BorderRounded}) to switch style
+// entirely, or keep the incompatible border style without rounded corners.
+func (b *Border) WithRoundedCorner(rounded bool) *Border {
+	if rounded {
+		switch b.Style.Border {
+		case latte.BorderDouble:
+			panic("oat-latte: WithRoundedCorner(true) is not supported for BorderDouble — " +
+				"Unicode has no double-stroke arc corners (╔╗╚╝ cannot be rounded)")
+		case latte.BorderThick:
+			panic("oat-latte: WithRoundedCorner(true) is not supported for BorderThick — " +
+				"Unicode has no heavy-stroke arc corners (┏┓┗┛ cannot be rounded)")
+		case latte.BorderDashed:
+			panic("oat-latte: WithRoundedCorner(true) is not supported for BorderDashed — " +
+				"arc corners (╭╮╰╯) do not connect to dashed strokes (╌ ╎)")
+		}
+		b.Style.Border = latte.BorderRounded
+	} else if b.Style.Border == latte.BorderRounded {
+		b.Style.Border = latte.BorderSingle
+	}
+	return b
+}
+
 // ApplyTheme applies Panel and PanelTitle tokens from the theme to this Border.
 // The FocusBorder colour is stored in FocusStyle.BorderFG so the focus-aware
 // Render logic picks it up automatically.

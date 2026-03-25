@@ -46,6 +46,11 @@ panel := layout.NewBorder(innerComponent).
     WithTitle("My Panel").
     WithTitleStyle(latte.Style{Bold: true})
 
+// Rounded corners — ╭─ My Panel ──╮ / ╰──────────╯
+panel := layout.NewBorder(innerComponent).
+    WithTitle("My Panel").
+    WithRoundedCorner(true)
+
 // Custom style (e.g. explicit padding):
 panel := layout.NewBorder(innerComponent).
     WithStyle(latte.Style{Padding: latte.Insets{Bottom: 1}}).
@@ -53,6 +58,28 @@ panel := layout.NewBorder(innerComponent).
 ```
 
 When any descendant of the border is focused, `Border` automatically promotes its border color to the theme's `FocusBorder` token. No extra code needed.
+
+### WithRoundedCorner
+
+`WithRoundedCorner(true)` switches the border style to `BorderRounded`, giving it arc corners (`╭╮╰╯`) instead of the default square ones (`┌┐└┘`). `WithRoundedCorner(false)` restores `BorderSingle`.
+
+**Compatibility:** Arc corners exist in Unicode only for light-weight strokes (`─` `│`). Calling `WithRoundedCorner(true)` on a border whose style is `BorderDouble`, `BorderThick`, or `BorderDashed` will **panic** at construction time, because those strokes have no matching arc corner codepoints and the result would be visually broken.
+
+| Border style | `WithRoundedCorner(true)` |
+|---|---|
+| `BorderSingle` (default) | Allowed → becomes `BorderRounded` |
+| `BorderDouble` | Panics — no double-stroke arc corners in Unicode |
+| `BorderThick` | Panics — no heavy-stroke arc corners in Unicode |
+| `BorderDashed` | Panics — arc corners don't connect to dashed strokes |
+
+To use rounded corners with a non-default style, switch the entire border style via `WithStyle`:
+
+```go
+// This is already BorderRounded — no need for WithRoundedCorner.
+panel := layout.NewBorder(innerComponent).
+    WithStyle(latte.Style{Border: latte.BorderRounded}).
+    WithTitle("My Panel")
+```
 
 ## Padding
 

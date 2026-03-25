@@ -251,6 +251,11 @@ panel := layout.NewBorder(innerComponent).
     WithTitle("My Panel").
     WithTitleStyle(latte.Style{Bold: true})
 
+// Rounded corners (╭─╮ / ╰─╯) — only valid for BorderSingle:
+panel := layout.NewBorder(innerComponent).
+    WithTitle("My Panel").
+    WithRoundedCorner(true)
+
 // Custom style (e.g. explicit padding):
 panel := layout.NewBorder(innerComponent).
     WithStyle(latte.Style{Padding: latte.Insets{Bottom: 1}}).
@@ -258,6 +263,16 @@ panel := layout.NewBorder(innerComponent).
 ```
 
 `Border` automatically sets its border color to `t.FocusBorder` when any descendant is focused (after theme application).
+
+#### WithRoundedCorner
+
+```go
+func (b *Border) WithRoundedCorner(rounded bool) *Border
+```
+
+- `true` — switches the border style to `BorderRounded` (`╭─╮│╰─╯`).
+- `false` — restores `BorderSingle` if the current style is `BorderRounded`; no-op otherwise.
+- **Panics** if called with `true` when the current border style is `BorderDouble`, `BorderThick`, or `BorderDashed`. Unicode provides arc corner codepoints (`╭╮╰╯`) only for light-weight strokes (`─` `│`); they do not connect visually to double (`═` `║`), heavy (`━` `┃`), or dashed (`╌` `╎`) lines. Use `WithStyle(latte.Style{Border: latte.BorderRounded})` to switch style entirely instead.
 
 ### Padding
 
