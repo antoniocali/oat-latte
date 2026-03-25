@@ -36,7 +36,8 @@ const sidebars: SidebarsConfig = {
         'themes',
         'focus',
         'custom-components',
-        'agents'
+        'agents',
+        'changelog'
     ],
 };
 
