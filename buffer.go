@@ -155,9 +155,14 @@ func (b *Buffer) DrawBorder(borderStyle latte.BorderStyle, style latte.Style) {
 }
 
 // DrawBorderTitle draws a border and optionally stamps " title " into the top rule.
-// anchor controls the horizontal position of the title: AnchorLeft (after the
-// opening corner), AnchorCenter, or AnchorRight (before the closing corner).
-// titleStyle is used for the title text; if its FG is ColorDefault the border FG is used.
+// anchor (oat.Anchor, H-axis) controls the horizontal position of the title:
+// AnchorLeft (after the opening corner), AnchorCenter, or AnchorRight (before
+// the closing corner). titleStyle is used for the title text; if its FG is
+// ColorDefault the border FG is used.
+//
+// Note: Anchor is the horizontal-axis type. The title always appears in the
+// top border row; there is no vertical placement variant for this function.
+// For vertical positioning see oat.VAnchor (used by Divider).
 func (b *Buffer) DrawBorderTitle(borderStyle latte.BorderStyle, title string, titleStyle latte.Style, style latte.Style, anchor Anchor) {
 	if borderStyle == latte.BorderNone || borderStyle == latte.BorderExplicitNone || b.clip.Width < 2 || b.clip.Height < 2 {
 		return

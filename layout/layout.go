@@ -490,8 +490,13 @@ func (b *Border) WithStyle(s latte.Style) *Border {
 }
 
 // WithTitle sets the label stamped into the top border rule.
-// anchor is optional and defaults to oat.AnchorLeft when omitted.
-// Pass oat.AnchorCenter or oat.AnchorRight to reposition the title.
+// anchor is an oat.Anchor (H-axis) and is optional; it defaults to
+// oat.AnchorLeft when omitted. Pass oat.AnchorCenter or oat.AnchorRight
+// to reposition the title horizontally.
+//
+// Note: Anchor is the horizontal-axis type. There is no vertical title
+// placement for Border — the title always appears in the top border row.
+// For vertical positioning see oat.VAnchor (used by Divider).
 func (b *Border) WithTitle(title string, anchor ...oat.Anchor) *Border {
 	b.Title = title
 	if len(anchor) > 0 {

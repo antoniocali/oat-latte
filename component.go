@@ -194,16 +194,48 @@ type IDer interface {
 func (b *BaseComponent) GetID() string { return b.ID }
 
 // Anchor controls the horizontal position of an element within its container.
-// It is used for the percentage label in ProgressBar and for the title in Border.
+//
+// It is the H-axis anchor type. All APIs that place content along the
+// horizontal axis accept Anchor:
+//   - DrawBorderTitle / Border.WithTitle — title position inside the top rule
+//   - ProgressBar.WithPercentage — where the "XX%" label appears
+//   - Divider.WithAnchor (AxisVertical) — which section of a vertical divider to render
+//
+// For the vertical axis see VAnchor.
+//
+// Future Align feature note: Anchor is intentionally H-axis only so that a
+// future Align type (for positioning a widget within its allocated region,
+// e.g. Text aligned to the right in a VBox) can be modelled as a separate
+// type without conflating placement with alignment.
 type Anchor int
 
 const (
 	// AnchorLeft aligns the element to the left edge. This is the default.
 	AnchorLeft Anchor = iota
-	// AnchorCenter centres the element.
+	// AnchorCenter centres the element horizontally.
 	AnchorCenter
 	// AnchorRight aligns the element to the right edge.
 	AnchorRight
+)
+
+// VAnchor controls the vertical position of an element within its container.
+//
+// It is the V-axis counterpart of Anchor. APIs that place content along the
+// vertical axis accept VAnchor:
+//   - Divider.WithAnchor (AxisHorizontal) — which section of a horizontal divider to render
+//
+// Future Align feature note: VAnchor is intentionally V-axis only so that a
+// future Align type (e.g. Text aligned to the bottom of its row in an HBox)
+// can be built without mixing placement semantics.
+type VAnchor int
+
+const (
+	// VAnchorTop aligns the element to the top edge. This is the default.
+	VAnchorTop VAnchor = iota
+	// VAnchorMiddle centres the element vertically.
+	VAnchorMiddle
+	// VAnchorBottom aligns the element to the bottom edge.
+	VAnchorBottom
 )
 
 // FocusGuard is an opt-in interface that lets a component dynamically opt out
