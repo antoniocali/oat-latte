@@ -52,7 +52,7 @@ If you want to go deep into how terminal UIs work at the core — raw sequences,
 
 - **Component model** — every element implements a two-method interface: `Measure` and `Render`. Parents ask children for their size, then hand them a region to draw into.
 - **Layout primitives** — `VBox`, `HBox`, `Grid`, `Border`, `Padding`, `Dialog`, and flex spacers (`VFill`, `HFill`) cover the vast majority of real layouts without custom sizing code.
-- **Widget library** — `Text`, `Button`, `CheckBox`, `EditText` (single- and multi-line), `List`, `Label`, `ProgressBar`, `StatusBar`, and `NotificationManager` out of the box.
+- **Widget library** — `Text`, `Button`, `CheckBox`, `EditText` (single- and multi-line), `List`, `Label`, `ProgressBar`, `StatusBar`, `NotificationManager`, `Dialog`, and `Divider` out of the box.
 - **Focus system** — automatic DFS-ordered Tab/Shift-Tab cycling; `HandleKey` returns a boolean so components can pass events up the chain; programmatic `FocusByRef` for instant jumps.
 - **Theme system** — five built-in themes (`Default`, `Dark`, `Light`, `Dracula`, `Nord`); a `Style.Merge` cascade lets per-widget overrides survive theme application.
 
