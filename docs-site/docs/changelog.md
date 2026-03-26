@@ -8,40 +8,9 @@ All notable changes to the oat-latte framework are listed here, newest first.
 
 ---
 
-## v0.2.6
-
-**`widget.Divider` · `oat.VAnchor`**
-
-### Added
-
-- `widget.Divider` — a new axis-agnostic rule widget for placing horizontal (`─`) or vertical (`│`) separators between layout children.
-  - `widget.NewHDivider()` / `widget.NewVDivider()` — convenience constructors.
-  - `widget.NewDivider(axis widget.Axis)` — explicit-axis constructor (`widget.AxisHorizontal` / `widget.AxisVertical`).
-  - `DividerSize` — controls how much of the allocated space the visible rule occupies: `widget.DividerFill` (default, full span), `widget.DividerFixed(n)` (exactly `n` cells), `widget.DividerPercent(p)` (1–100% of the allocated length).
-  - `(*Divider).WithRune(r rune)` — override the line character (e.g. `'═'` for a double rule).
-  - `(*Divider).WithMaxSize(size DividerSize, anchor ...oat.Anchor)` — for `AxisHorizontal` dividers: limits width and positions the rule horizontally.
-  - `(*Divider).WithMaxSizeV(size DividerSize, anchor ...oat.VAnchor)` — for `AxisVertical` dividers: limits height and positions the rule vertically.
-  - `(*Divider).WithStyle(s latte.Style)` — override the display style.
-  - `ApplyTheme` maps the `Muted` theme token onto the divider; override with `WithStyle`.
-
-- `oat.VAnchor` — new vertical-axis positioning type (`VAnchorTop`, `VAnchorMiddle`, `VAnchorBottom`), the V-axis counterpart to `oat.Anchor`. The two types are kept separate so the compiler enforces correct axis usage — APIs that accept H-axis placement cannot accidentally receive a `VAnchor` and vice versa.
-
-```go
-// Horizontal rule — place in a VBox between items
-hd := widget.NewHDivider()
-hd := widget.NewHDivider().WithRune('═')
-hd := widget.NewHDivider().WithMaxSize(widget.DividerPercent(60), oat.AnchorCenter)
-
-// Vertical rule — place in an HBox between items
-vd := widget.NewVDivider()
-vd := widget.NewVDivider().WithMaxSizeV(widget.DividerFixed(8), oat.VAnchorMiddle)
-```
-
----
-
 ## v0.2.5
 
-**Named true-color palette (`latte/colors.go`)**
+**Named true-color palette · `widget.Divider` · `oat.VAnchor`**
 
 ### Added
 
@@ -55,16 +24,37 @@ vd := widget.NewVDivider().WithMaxSizeV(widget.DividerFixed(8), oat.VAnchorMiddl
   - `Dracula*` — `DraculaBg`, `DraculaBgElevated`, `DraculaBgScrim`, `DraculaFg`, `DraculaComment`, `DraculaSelection`, `DraculaPurple`, `DraculaCyan`, `DraculaGreen`, `DraculaOrange`, `DraculaRed`, `DraculaYellow`, `DraculaPink`
   - `Nord0`–`Nord15` + `NordBg`, `NordBgElevated`, `NordBgScrim`
 
+- `widget.Divider` — axis-agnostic rule widget for placing horizontal (`─`) or vertical (`│`) separators between layout children.
+  - `widget.NewHDivider()` / `widget.NewVDivider()` — convenience constructors.
+  - `widget.NewDivider(axis widget.Axis)` — explicit-axis constructor (`widget.AxisHorizontal` / `widget.AxisVertical`).
+  - `DividerSize` — controls how much of the allocated space the visible rule occupies: `widget.DividerFill` (default, full span), `widget.DividerFixed(n)` (exactly `n` cells), `widget.DividerPercent(p)` (1–100% of the allocated length).
+  - `(*Divider).WithRune(r rune)` — override the line character (e.g. `'═'` for a double rule).
+  - `(*Divider).WithMaxSize(size DividerSize, anchor ...oat.Anchor)` — for `AxisHorizontal` dividers: limits width and positions the rule horizontally.
+  - `(*Divider).WithMaxSizeV(size DividerSize, anchor ...oat.VAnchor)` — for `AxisVertical` dividers: limits height and positions the rule vertically.
+  - `(*Divider).WithStyle(s latte.Style)` — override the display style.
+  - `ApplyTheme` maps the `Muted` theme token onto the divider; override with `WithStyle`.
+
+- `oat.VAnchor` — new vertical-axis positioning type (`VAnchorTop`, `VAnchorMiddle`, `VAnchorBottom`), the V-axis counterpart to `oat.Anchor`. The two types are kept separate so the compiler enforces correct axis usage — APIs that accept H-axis placement cannot accidentally receive a `VAnchor` and vice versa.
+
 ### Changed
 
 - `ThemeDark`, `ThemeLight`, `ThemeDracula`, `ThemeNord` — all raw `Hex("...")` literals replaced with the new named constants. No visual change; pure readability / maintainability improvement.
 
 ```go
-// Build a custom dark theme by tweaking named constants instead of hex strings.
+// Named constants instead of raw hex strings.
 myTheme := latte.ThemeDark.
     WithAccent(latte.Style{FG: latte.Pink500}).
     WithFocusBorder(latte.Pink500).
     WithName("dark-pink")
+
+// Horizontal rule — place in a VBox between items
+hd := widget.NewHDivider()
+hd := widget.NewHDivider().WithRune('═')
+hd := widget.NewHDivider().WithMaxSize(widget.DividerPercent(60), oat.AnchorCenter)
+
+// Vertical rule — place in an HBox between items
+vd := widget.NewVDivider()
+vd := widget.NewVDivider().WithMaxSizeV(widget.DividerFixed(8), oat.VAnchorMiddle)
 ```
 
 ---
