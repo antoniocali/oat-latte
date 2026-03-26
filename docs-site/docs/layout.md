@@ -204,3 +204,35 @@ layout.NewFlexChild(rightPanel, 3)   // right panel gets 3× the space
 :::tip When to use FlexChild vs AddFlexChild
 They are equivalent in effect. Prefer `NewFlexChild` when building the child list inline (e.g. passing to a variadic constructor). Use `AddFlexChild` when you need to add a flex child to an already-constructed box.
 :::
+
+## Divider
+
+`widget.Divider` renders a single-cell-thick rule between layout children. Place a horizontal divider in a `VBox` to separate rows; place a vertical divider in an `HBox` to separate columns.
+
+```go
+// Horizontal rule between two sections
+vbox := layout.NewVBox(
+    widget.NewText("Section A"),
+    widget.NewHDivider(),
+    widget.NewText("Section B"),
+)
+
+// Vertical rule between two panels
+hbox := layout.NewHBox(
+    layout.NewFlexChild(leftPanel, 1),
+    widget.NewVDivider(),
+    layout.NewFlexChild(rightPanel, 2),
+)
+```
+
+The divider fills the full allocated span by default. Use `WithMaxSize` / `WithMaxSizeV` with a `DividerSize` to limit it and anchor it within the available space:
+
+```go
+// 60% wide, centred horizontally
+widget.NewHDivider().WithMaxSize(widget.DividerPercent(60), oat.AnchorCenter)
+
+// 8 cells tall, centred vertically
+widget.NewVDivider().WithMaxSizeV(widget.DividerFixed(8), oat.VAnchorMiddle)
+```
+
+See the [Divider widget page](./widgets/divider.md) for the full API reference.

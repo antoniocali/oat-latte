@@ -34,6 +34,46 @@ latte.ColorBrightWhite      // ANSI-16 bright variants
 
 True-color requires a modern terminal (e.g. iTerm2, kitty, Windows Terminal, most Linux terminals). `latte.ThemeDefault` uses only ANSI-16 and works everywhere.
 
+## Named color palette
+
+`latte/colors.go` provides ~120 named `Color` constants so you can reference semantic names instead of raw hex strings. All constants are `latte.Color` values produced via `latte.RGB` and work with any API that accepts a `latte.Color`.
+
+### Utility scales
+
+Tailwind-style shade scales (50–950): `Slate`, `Zinc`, `Stone`, `Sky`, `Blue`, `Indigo`, `Cornflower`, `Cyan`, `Teal`, `Emerald`, `Green`, `Lime`, `Yellow`, `Amber`, `Orange`, `Red`, `Rose`, `Pink`, `Violet`, `Purple`, `Fuchsia`.
+
+```go
+latte.Pink500       // RGB(236, 72, 153)
+latte.Slate800      // RGB(30, 41, 59)
+latte.Emerald400    // RGB(52, 211, 153)
+latte.Cornflower400 // RGB(100, 149, 237) — classic TUI focus blue
+```
+
+### Design-system palettes
+
+Named constants extracted directly from the four true-color built-in themes, grouped by theme family:
+
+| Family | Example constants |
+|---|---|
+| `Dark*` | `DarkBg`, `DarkAccent`, `DarkMuted`, `DarkSuccess`, `DarkWarning`, `DarkError`, `DarkBgElevated`, `DarkBgScrim`, `DarkBorder` |
+| `Light*` | `LightBg`, `LightAccent`, `LightText`, `LightMuted`, `LightSuccess`, `LightWarning`, `LightError`, `LightBgElevated`, `LightBgScrim`, `LightBorder` |
+| `Dracula*` | `DraculaBg`, `DraculaPurple`, `DraculaCyan`, `DraculaGreen`, `DraculaFg`, `DraculaComment`, `DraculaSelection`, `DraculaOrange`, `DraculaRed`, `DraculaYellow`, `DraculaPink` |
+| `Nord0`–`Nord15` | `NordBg`, `NordBgElevated`, `NordBgScrim` |
+
+```go
+// Derive a custom theme using named constants instead of raw hex literals.
+myTheme := latte.ThemeDark.
+    WithAccent(latte.Style{FG: latte.Pink500}).
+    WithFocusBorder(latte.Pink500).
+    WithName("dark-pink")
+
+// Mix palette families — e.g. Nord background with Dracula accents.
+hybrid := latte.ThemeNord.
+    WithAccent(latte.Style{FG: latte.DraculaPurple}).
+    WithFocusBorder(latte.DraculaCyan).
+    WithName("nord-dracula")
+```
+
 ## Borders
 
 | Constant | Runes | Notes |

@@ -35,7 +35,9 @@ Constraint{MaxWidth, MaxHeight int} // available space; -1 = unconstrained
 Insets{Top, Right, Bottom, Left int} // padding / margin
 ```
 
-`oat.Anchor` is a horizontal-position enum (`AnchorLeft`, `AnchorCenter`, `AnchorRight`) used by `Border.WithTitle` and `ProgressBar.WithPercentage` to control where text is placed inside a bar or border rule.
+`oat.Anchor` is a **horizontal-axis** position enum (`AnchorLeft`, `AnchorCenter`, `AnchorRight`) used by `Border.WithTitle`, `ProgressBar.WithPercentage`, and `Divider.WithMaxSize` to control where text or a rule is placed on the horizontal axis.
+
+`oat.VAnchor` is the **vertical-axis** counterpart (`VAnchorTop`, `VAnchorMiddle`, `VAnchorBottom`), used by `Divider.WithMaxSizeV`. The two types are kept separate so the compiler prevents accidentally passing a `VAnchor` to an H-axis API and vice versa.
 
 ## Layout
 
