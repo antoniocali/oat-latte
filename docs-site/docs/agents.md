@@ -23,7 +23,7 @@ Sub-packages:
 | `github.com/antoniocali/oat-latte` | Core interfaces, `Canvas`, `Buffer`, `FocusManager`, geometry types |
 | `github.com/antoniocali/oat-latte/latte` | `Style`, `Color`, `BorderStyle`, `Theme`, built-in themes |
 | `github.com/antoniocali/oat-latte/layout` | `VBox`, `HBox`, `Grid`, `Stack`, `Border`, `Padding`, `VFill`, `HFill`, `FlexChild` |
-| `github.com/antoniocali/oat-latte/widget` | `Text`, `Title`, `Button`, `CheckBox`, `EditText`, `List`, `Label`, `ProgressBar`, `StatusBar`, `NotificationManager`, `Dialog` |
+| `github.com/antoniocali/oat-latte/widget` | `Text`, `Title`, `Button`, `CheckBox`, `EditText`, `List`, `Label`, `ProgressBar`, `StatusBar`, `NotificationManager`, `Dialog`, `Divider` |
 
 ---
 
@@ -104,13 +104,25 @@ Insets{Top, Right, Bottom, Left int}      // padding / margin
 
 ### Anchor
 
-`oat.Anchor` is a general-purpose iota for horizontal positioning used by `ProgressBar.WithPercentage` and `Border.WithTitle`.
+`oat.Anchor` is the **horizontal-axis** positioning type. It is used by `ProgressBar.WithPercentage`, `Border.WithTitle`, and `Divider.WithMaxSize` (for `AxisVertical` dividers).
 
 ```go
 oat.AnchorLeft    // default — left edge
-oat.AnchorCenter  // centred
+oat.AnchorCenter  // centred horizontally
 oat.AnchorRight   // right edge
 ```
+
+### VAnchor
+
+`oat.VAnchor` is the **vertical-axis** positioning type. It is used by `Divider.WithMaxSizeV` (for `AxisHorizontal` dividers). It is reserved for the future Align feature that will let widgets position themselves within their allocated region on the V-axis (e.g. `Text` aligned to the bottom of a row in an `HBox`).
+
+```go
+oat.VAnchorTop     // default — top edge
+oat.VAnchorMiddle  // centred vertically
+oat.VAnchorBottom  // bottom edge
+```
+
+The two types are kept separate so APIs that accept horizontal placement cannot accidentally receive a `VAnchor` value and vice versa — the compiler enforces correct axis usage.
 
 ---
 
@@ -534,6 +546,42 @@ oat.WithAutoStatusBar(bar)
 ```
 
 Auto-populates with the focused component's `KeyBindings()` plus any registered global bindings.
+
+### Divider
+
+```go
+// Horizontal rule (─────) — place in a VBox between items
+hd := widget.NewHDivider()                          // full-width, default rune '─'
+hd := widget.NewHDivider().WithRune('═')            // double rule
+hd := widget.NewHDivider().
+    WithMaxSize(widget.DividerPercent(60), oat.AnchorCenter) // 60% wide, centred
+
+// Vertical rule (│) — place in an HBox between items
+vd := widget.NewVDivider()                          // full-height, default rune '│'
+vd := widget.NewVDivider().
+    WithMaxSizeV(widget.DividerFixed(8), oat.VAnchorMiddle)  // 8 cells tall, centred
+
+// Axis-explicit constructor
+d := widget.NewDivider(widget.AxisHorizontal)
+d := widget.NewDivider(widget.AxisVertical)
+```
+
+`DividerSize` controls how much of the allocated space is occupied by the visible rule:
+
+| Constructor | Meaning |
+|---|---|
+| `widget.DividerFill` | spans the full allocated length (default) |
+| `widget.DividerFixed(n)` | exactly `n` terminal cells |
+| `widget.DividerPercent(p)` | `p`% of the allocated length (1–100) |
+
+Anchor semantics per axis:
+
+- **AxisHorizontal** — `WithMaxSize(size, anchor ...oat.Anchor)` — size controls **width**; `oat.Anchor` positions the rule horizontally (`AnchorLeft` / `AnchorCenter` / `AnchorRight`).
+- **AxisVertical** — `WithMaxSizeV(size, anchor ...oat.VAnchor)` — size controls **height**; `oat.VAnchor` positions the rule vertically (`VAnchorTop` / `VAnchorMiddle` / `VAnchorBottom`).
+
+Using the wrong anchor type for the axis is a compile error — the API enforces correct axis usage.
+
+`ApplyTheme` maps the `Muted` token onto the divider. Override with `WithStyle`.
 
 ---
 

@@ -57,12 +57,16 @@ func (p *ProgressBar) WithEmptyChar(r rune) *ProgressBar { p.emptyChar = r; retu
 func (p *ProgressBar) WithShowPercent(show bool) *ProgressBar { p.showPercent = show; return p }
 
 // WithPercentage controls whether a percentage label is rendered and where it
-// appears relative to the bar. anchor is optional and defaults to oat.AnchorLeft.
+// appears relative to the bar. anchor is an oat.Anchor (H-axis) and is
+// optional; it defaults to oat.AnchorLeft.
 //
 //	pb.WithPercentage(true)                    // " 42% ███░░░"  label at the left (default)
 //	pb.WithPercentage(true, oat.AnchorRight)   // "███░░░░ 42%"  label at the right
 //	pb.WithPercentage(true, oat.AnchorCenter)  // "███ 42% ░░░"  label centred inside the bar
 //	pb.WithPercentage(false)                   // no label
+//
+// Note: Anchor is the horizontal-axis type. ProgressBar is always a
+// horizontal widget so only H-axis positioning is relevant here.
 func (p *ProgressBar) WithPercentage(show bool, anchor ...oat.Anchor) *ProgressBar {
 	p.showPercent = show
 	if len(anchor) > 0 {
