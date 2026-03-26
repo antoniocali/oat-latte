@@ -10,9 +10,7 @@ description: Boolean toggle widget.
 
 ## Basic usage
 
-```go
-cb := widget.NewCheckBox("Enable notifications")
-```
+Create a checkbox with `widget.NewCheckBox("Enable notifications")` and add it to a layout container.
 
 ## Builder options
 

@@ -69,9 +69,7 @@ list.WithHighlight(false)
 
 ## Updating items
 
-```go
-list.SetItems(newItems)
-```
+Call `list.SetItems(newItems)` to replace the full item slice at any time.
 
 `SetItems` preserves the cursor position if the new slice is long enough; otherwise it clamps to the last item.
 

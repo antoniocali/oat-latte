@@ -13,9 +13,7 @@ description: Add oat-latte to your Go module.
 
 ## Add the module
 
-```bash
-go get github.com/antoniocali/oat-latte
-```
+Run `go get github.com/antoniocali/oat-latte` inside your module root.
 
 ## Packages
 
@@ -54,13 +52,7 @@ func main() {
 }
 ```
 
-Run it:
-
-```bash
-go run .
-```
-
-Press `Esc` or `Ctrl+C` to quit.
+Run it with `go run .` and press `Esc` or `Ctrl+C` to quit.
 
 ## Example apps
 

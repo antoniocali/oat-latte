@@ -20,15 +20,7 @@ Each step is self-contained and runnable. You can stop at any step and have a wo
 
 ## What you will build
 
-```
-┌─ Tasks ──────────────────────────────────────────────────────────┐
-│  ▶  Buy groceries                                                 │
-│     Write tutorial                                                │
-│     Ship v0.1.0                                                   │
-│                                                                   │
-└──────────────────────────────────────────────────────────────────┘
-  n · New    Del · Delete    Esc · Quit
-```
+![tasklist demo](/img/tasklist-demo.gif)
 
 ---
 
@@ -36,11 +28,7 @@ Each step is self-contained and runnable. You can stop at any step and have a wo
 
 - Go 1.21 or later
 - A true-color terminal (iTerm2, Ghostty, Windows Terminal, etc.)
-- oat-latte installed:
-
-```sh
-go get github.com/antoniocali/oat-latte
-```
+- oat-latte installed: `go get github.com/antoniocali/oat-latte`
 
 Create a new module for the tutorial:
 
@@ -80,13 +68,7 @@ func main() {
 }
 ```
 
-Run it:
-
-```sh
-go run .
-```
-
-You should see `Hello, terminal!` centred in a dark terminal. Press **Esc** to quit.
+Run it with `go run .` — you should see `Hello, terminal!` centred in a dark terminal. Press **Esc** to quit.
 
 :::tip What just happened?
 `NewCanvas` owns the tcell screen and event loop. `WithBody` sets the component that fills the middle of the screen. `WithTheme` propagates a colour scheme to every component in the tree.
@@ -674,17 +656,7 @@ func main() {
 
 ## Run this example
 
-The finished task-list app is included in the oat-latte repository. You can run it directly without cloning:
-
-```sh
-go run github.com/antoniocali/oat-latte/cmd/example/tasklist
-```
-
-Or, if you have the repo checked out:
-
-```sh
-make run-tasklist
-```
+The finished task-list app is included in the oat-latte repository. Run it directly without cloning with `go run github.com/antoniocali/oat-latte/cmd/example/tasklist`, or if you have the repo checked out: `make run-tasklist`.
 
 ---
 

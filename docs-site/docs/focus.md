@@ -121,11 +121,7 @@ app := oat.NewCanvas(..., oat.WithPrimary(proxy))
 
 ## Programmatic focus
 
-Jump focus directly to any widget by pointer identity:
-
-```go
-app.FocusByRef(myEditText)
-```
+Jump focus directly to any widget by pointer identity by calling `app.FocusByRef(target)`:
 
 The target must be in the current focus tree (body or active dialog). Use this to direct the user to a specific field after an action — for example, pressing a shortcut key that opens an editor and immediately focuses the title input.
 

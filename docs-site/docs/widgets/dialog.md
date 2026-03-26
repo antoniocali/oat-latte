@@ -17,11 +17,7 @@ import "github.com/antoniocali/oat-latte/widget"
 
 ## Constructor
 
-```go
-dlg := widget.NewDialog("Title")
-```
-
-No style argument is needed — colours and border are filled in by the active theme via `ApplyTheme`. Use `WithStyle` to override specific fields.
+Create a dialog with `widget.NewDialog("Title")`. No style argument is needed — colours and border are filled in by the active theme via `ApplyTheme`. Use `WithStyle` to override specific fields.
 
 ## Builder methods
 

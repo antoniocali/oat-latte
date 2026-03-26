@@ -10,11 +10,7 @@ description: Inline tag/chip badge row.
 
 ## Basic usage
 
-```go
-lbl := widget.NewLabel([]string{"go", "tui", "terminal"})
-```
-
-Renders as: `go · tui · terminal`
+`widget.NewLabel([]string{"go", "tui", "terminal"})` renders a chip row: `go · tui · terminal`
 
 ## Builder options
 
@@ -42,9 +38,7 @@ lbl.SetLabels(nil) // clears all chips
 
 ## Reading labels
 
-```go
-tags := lbl.GetLabels() // []string
-```
+Use `lbl.GetLabels()` to retrieve the current chip slice as `[]string`.
 
 `Label` also implements `oat.ValueGetter`: `Canvas.GetValue(id)` returns all chips joined by the separator as a `string`.
 

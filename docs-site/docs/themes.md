@@ -96,11 +96,7 @@ input := widget.NewEditText().
 
 ## Style.Merge
 
-```go
-result := base.Merge(override)
-```
-
-Non-zero fields from `override` replace the corresponding fields in `base`. Zero fields in `override` leave `base` untouched. This is how theme tokens cascade without clobbering explicit per-widget settings.
+Non-zero fields from `override` replace the corresponding fields in `base`. Zero fields in `override` leave `base` untouched. Calling `base.Merge(override)` is how theme tokens cascade without clobbering explicit per-widget settings.
 
 :::warning
 In `ApplyTheme`, always use `Merge` — never assign the theme token directly:

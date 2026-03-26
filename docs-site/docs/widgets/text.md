@@ -10,9 +10,7 @@ description: Static text display with word-wrap and scroll.
 
 ## Basic usage
 
-```go
-t := widget.NewText("Hello, world!")
-```
+Create a text widget with `widget.NewText("Hello, world!")` and add it to any layout container.
 
 ## Builder options
 
@@ -53,21 +51,11 @@ scrollable := widget.NewText(longContent).
 
 ## In a layout
 
-`Text` is a non-focusable display component. Wrap it in a flex child to let it fill available space:
-
-```go
-vbox.AddFlexChild(widget.NewText(longContent), 1)
-```
+`Text` is a non-focusable display component. Wrap it in a flex child to let it fill available space, e.g. `vbox.AddFlexChild(widget.NewText(longContent), 1)`.
 
 ## Title widget
 
-For a prominent heading with an optional horizontal rule beneath it, use `widget.NewTitle` instead:
-
-```go
-heading := widget.NewTitle("My Application")
-```
-
-`Title` uses the theme's `Accent` token by default. To override:
+For a prominent heading with an optional horizontal rule beneath it, use `widget.NewTitle("My Application")` instead of a plain `Text`. It uses the theme's `Accent` token by default. To override:
 
 ```go
 heading := widget.NewTitle("My Application").

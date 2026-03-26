@@ -145,11 +145,7 @@ Zero value means "inherit / use default". Non-zero fields override. Construct in
 
 ### Style.Merge
 
-```go
-merged := base.Merge(override)
-```
-
-Non-zero fields from `override` replace those in `base`. Use this pattern in `ApplyTheme` to let theme act as base while preserving caller-set fields:
+Call `base.Merge(override)` to produce a merged style where non-zero fields from `override` replace those in `base`. Use this pattern in `ApplyTheme` to let theme act as base while preserving caller-set fields:
 
 ```go
 func (w *MyWidget) ApplyTheme(t latte.Theme) {
@@ -670,11 +666,7 @@ func (p *myProxy) KeyBindings() []oat.KeyBinding {
 
 ### Programmatic focus
 
-```go
-app.FocusByRef(myTitleInput)   // jump to a specific widget
-```
-
-`FocusByRef` is pointer identity. The target must be in the current focus tree (body or active dialog).
+Call `app.FocusByRef(target)` to jump focus directly to a specific widget by pointer identity. The target must be in the current focus tree (body or active dialog).
 
 ### FocusGuard — context-aware Tab cycling
 

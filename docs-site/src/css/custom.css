@@ -179,7 +179,7 @@
   border-radius: 0 !important;
 }
 .theme-code-block {
-  border: 2px solid #000;
+  border: 1px solid #000;
   border-radius: 0 !important;
   box-shadow: none !important;
 }
@@ -229,13 +229,16 @@
   letter-spacing: 0.06em;
 }
 
-/* inline code */
+/* inline code — tinted background instead of a border box */
 code:not([class*='language-']) {
-  background: transparent !important;
-  border: 1.5px solid currentColor;
+  background: #f0f0f0 !important;
+  border: none !important;
   border-radius: 0 !important;
-  padding: 0.1em 0.3em;
+  padding: 0.1em 0.35em;
   font-size: 0.87em;
+}
+[data-theme='dark'] code:not([class*='language-']) {
+  background: #1a1a1a !important;
 }
 
 /* ── Admonitions ─────────────────────────────────────────────────── */

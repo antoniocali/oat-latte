@@ -90,9 +90,7 @@ current := input.GetText()
 
 ## Max length
 
-```go
-input := widget.NewEditText().WithMaxLength(64)
-```
+Pass `WithMaxLength(n)` to cap the character count on a single-line field, e.g. `widget.NewEditText().WithMaxLength(64)`. A value of `0` means unlimited.
 
 ## Built-in key bindings
 
