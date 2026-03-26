@@ -294,86 +294,86 @@ var ThemeDefault = Theme{
 // a blue-cyan accent palette. Requires a terminal with true-color support.
 var ThemeDark = Theme{
 	Name:   "dark",
-	Canvas: Style{BG: Hex("#0f1117")},
+	Canvas: Style{BG: DarkBg},
 
-	Text:  Style{FG: ColorBrightWhite, BG: Hex("#0f1117")},
-	Muted: Style{FG: Hex("#4a5068"), BG: Hex("#0f1117")},
+	Text:  Style{FG: ColorBrightWhite, BG: DarkBg},
+	Muted: Style{FG: DarkMuted, BG: DarkBg},
 
-	Accent:  Style{FG: Hex("#7c9cff"), BG: Hex("#0f1117"), Bold: true},
-	Success: Style{FG: Hex("#4ade80"), BG: Hex("#0f1117")},
-	Warning: Style{FG: Hex("#facc15"), BG: Hex("#0f1117")},
-	Error:   Style{FG: Hex("#f87171"), BG: Hex("#0f1117")},
+	Accent:  Style{FG: DarkAccent, BG: DarkBg, Bold: true},
+	Success: Style{FG: DarkSuccess, BG: DarkBg},
+	Warning: Style{FG: DarkWarning, BG: DarkBg},
+	Error:   Style{FG: DarkError, BG: DarkBg},
 
-	Panel:      Style{Border: BorderRounded, BorderFG: Hex("#2e3247")},
-	PanelTitle: Style{FG: Hex("#7c9cff"), Bold: true},
+	Panel:      Style{Border: BorderRounded, BorderFG: DarkBorder},
+	PanelTitle: Style{FG: DarkAccent, Bold: true},
 
-	Input:      Style{Border: BorderSingle, BorderFG: Hex("#4a5068"), FG: ColorBrightWhite},
-	InputFocus: Style{BorderFG: Hex("#7c9cff")},
+	Input:      Style{Border: BorderSingle, BorderFG: DarkMuted, FG: ColorBrightWhite},
+	InputFocus: Style{BorderFG: DarkAccent},
 
-	ListSelected:  Style{FG: Hex("#7c9cff"), Bold: true},
-	Button:        Style{FG: ColorDefault, Border: BorderSingle, BorderFG: Hex("#4a5068")},
-	ButtonFocus:   Style{Reverse: true, BorderFG: Hex("#7c9cff")},
-	CheckBox:      Style{FG: Hex("#4ade80")},
+	ListSelected:  Style{FG: DarkAccent, Bold: true},
+	Button:        Style{FG: ColorDefault, Border: BorderSingle, BorderFG: DarkMuted},
+	ButtonFocus:   Style{Reverse: true, BorderFG: DarkAccent},
+	CheckBox:      Style{FG: DarkSuccess},
 	CheckBoxFocus: Focused,
 
-	Header: Style{FG: Hex("#7c9cff"), BG: Hex("#0f1117"), Bold: true},
-	Footer: Style{FG: Hex("#4a5068"), BG: Hex("#0f1117")},
+	Header: Style{FG: DarkAccent, BG: DarkBg, Bold: true},
+	Footer: Style{FG: DarkMuted, BG: DarkBg},
 
-	FocusBorder: Hex("#7c9cff"),
+	FocusBorder: DarkAccent,
 
-	Dialog:      Style{Border: BorderRounded, BorderFG: Hex("#7c9cff"), BG: Hex("#1a1f2e")},
-	DialogTitle: Style{FG: Hex("#7c9cff"), Bold: true},
-	Tag:         Style{FG: Hex("#0f1117"), BG: Hex("#7c9cff"), Bold: true},
+	Dialog:      Style{Border: BorderRounded, BorderFG: DarkAccent, BG: DarkBgElevated},
+	DialogTitle: Style{FG: DarkAccent, Bold: true},
+	Tag:         Style{FG: DarkBg, BG: DarkAccent, Bold: true},
 
-	NotificationInfo:    Style{FG: Hex("#0f1117"), BG: Hex("#7c9cff"), Bold: true},
-	NotificationSuccess: Style{FG: Hex("#0f1117"), BG: Hex("#4ade80"), Bold: true},
-	NotificationWarning: Style{FG: Hex("#0f1117"), BG: Hex("#facc15"), Bold: true},
-	NotificationError:   Style{FG: Hex("#0f1117"), BG: Hex("#f87171"), Bold: true},
+	NotificationInfo:    Style{FG: DarkBg, BG: DarkAccent, Bold: true},
+	NotificationSuccess: Style{FG: DarkBg, BG: DarkSuccess, Bold: true},
+	NotificationWarning: Style{FG: DarkBg, BG: DarkWarning, Bold: true},
+	NotificationError:   Style{FG: DarkBg, BG: DarkError, Bold: true},
 
-	Scrim: Style{BG: Hex("#080b10")},
+	Scrim: Style{BG: DarkBgScrim},
 }
 
 // ThemeLight is a true-color light theme with a warm off-white background.
 // Requires a terminal with true-color support.
 var ThemeLight = Theme{
 	Name:   "light",
-	Canvas: Style{BG: Hex("#f8f5f0")},
+	Canvas: Style{BG: LightBg},
 
-	Text:  Style{FG: Hex("#1a1a2e"), BG: Hex("#f8f5f0")},
-	Muted: Style{FG: Hex("#8e8e9a"), BG: Hex("#f8f5f0")},
+	Text:  Style{FG: LightText, BG: LightBg},
+	Muted: Style{FG: LightMuted, BG: LightBg},
 
-	Accent:  Style{FG: Hex("#4361ee"), BG: Hex("#f8f5f0"), Bold: true},
-	Success: Style{FG: Hex("#2d6a4f"), BG: Hex("#f8f5f0")},
-	Warning: Style{FG: Hex("#e07b00"), BG: Hex("#f8f5f0")},
-	Error:   Style{FG: Hex("#d62828"), BG: Hex("#f8f5f0")},
+	Accent:  Style{FG: LightAccent, BG: LightBg, Bold: true},
+	Success: Style{FG: LightSuccess, BG: LightBg},
+	Warning: Style{FG: LightWarning, BG: LightBg},
+	Error:   Style{FG: LightError, BG: LightBg},
 
-	Panel:      Style{Border: BorderRounded, BorderFG: Hex("#c8c4be")},
-	PanelTitle: Style{FG: Hex("#4361ee"), Bold: true},
+	Panel:      Style{Border: BorderRounded, BorderFG: LightBorder},
+	PanelTitle: Style{FG: LightAccent, Bold: true},
 
-	Input:      Style{Border: BorderSingle, BorderFG: Hex("#c8c4be"), FG: Hex("#1a1a2e")},
-	InputFocus: Style{BorderFG: Hex("#4361ee")},
+	Input:      Style{Border: BorderSingle, BorderFG: LightBorder, FG: LightText},
+	InputFocus: Style{BorderFG: LightAccent},
 
-	ListSelected:  Style{FG: Hex("#4361ee"), Bold: true},
-	Button:        Style{FG: Hex("#1a1a2e"), Border: BorderSingle, BorderFG: Hex("#c8c4be")},
-	ButtonFocus:   Style{Reverse: true, BorderFG: Hex("#4361ee")},
-	CheckBox:      Style{FG: Hex("#2d6a4f")},
-	CheckBoxFocus: Style{Reverse: true, Border: BorderSingle, BorderFG: Hex("#4361ee")},
+	ListSelected:  Style{FG: LightAccent, Bold: true},
+	Button:        Style{FG: LightText, Border: BorderSingle, BorderFG: LightBorder},
+	ButtonFocus:   Style{Reverse: true, BorderFG: LightAccent},
+	CheckBox:      Style{FG: LightSuccess},
+	CheckBoxFocus: Style{Reverse: true, Border: BorderSingle, BorderFG: LightAccent},
 
-	Header: Style{FG: Hex("#4361ee"), BG: Hex("#f8f5f0"), Bold: true},
-	Footer: Style{FG: Hex("#8e8e9a"), BG: Hex("#f8f5f0")},
+	Header: Style{FG: LightAccent, BG: LightBg, Bold: true},
+	Footer: Style{FG: LightMuted, BG: LightBg},
 
-	FocusBorder: Hex("#4361ee"),
+	FocusBorder: LightAccent,
 
-	Dialog:      Style{Border: BorderRounded, BorderFG: Hex("#4361ee"), BG: Hex("#eeebe5")},
-	DialogTitle: Style{FG: Hex("#4361ee"), Bold: true},
-	Tag:         Style{FG: Hex("#f8f5f0"), BG: Hex("#4361ee"), Bold: true},
+	Dialog:      Style{Border: BorderRounded, BorderFG: LightAccent, BG: LightBgElevated},
+	DialogTitle: Style{FG: LightAccent, Bold: true},
+	Tag:         Style{FG: LightBg, BG: LightAccent, Bold: true},
 
-	NotificationInfo:    Style{FG: Hex("#f8f5f0"), BG: Hex("#4361ee"), Bold: true},
-	NotificationSuccess: Style{FG: Hex("#f8f5f0"), BG: Hex("#2d6a4f"), Bold: true},
-	NotificationWarning: Style{FG: Hex("#1a1a2e"), BG: Hex("#e07b00"), Bold: true},
-	NotificationError:   Style{FG: Hex("#f8f5f0"), BG: Hex("#d62828"), Bold: true},
+	NotificationInfo:    Style{FG: LightBg, BG: LightAccent, Bold: true},
+	NotificationSuccess: Style{FG: LightBg, BG: LightSuccess, Bold: true},
+	NotificationWarning: Style{FG: LightText, BG: LightWarning, Bold: true},
+	NotificationError:   Style{FG: LightBg, BG: LightError, Bold: true},
 
-	Scrim: Style{BG: Hex("#e0dcd7")},
+	Scrim: Style{BG: LightBgScrim},
 }
 
 // ThemeDracula follows the popular Dracula color scheme.
@@ -381,43 +381,43 @@ var ThemeLight = Theme{
 // Reference: https://draculatheme.com/contribute
 var ThemeDracula = Theme{
 	Name:   "dracula",
-	Canvas: Style{BG: Hex("#282a36")},
+	Canvas: Style{BG: DraculaBg},
 
-	Text:  Style{FG: Hex("#f8f8f2"), BG: Hex("#282a36")},
-	Muted: Style{FG: Hex("#6272a4"), BG: Hex("#282a36")},
+	Text:  Style{FG: DraculaFg, BG: DraculaBg},
+	Muted: Style{FG: DraculaComment, BG: DraculaBg},
 
-	Accent:  Style{FG: Hex("#bd93f9"), BG: Hex("#282a36"), Bold: true}, // purple
-	Success: Style{FG: Hex("#50fa7b"), BG: Hex("#282a36")},             // green
-	Warning: Style{FG: Hex("#ffb86c"), BG: Hex("#282a36")},             // orange
-	Error:   Style{FG: Hex("#ff5555"), BG: Hex("#282a36")},             // red
+	Accent:  Style{FG: DraculaPurple, BG: DraculaBg, Bold: true},
+	Success: Style{FG: DraculaGreen, BG: DraculaBg},
+	Warning: Style{FG: DraculaOrange, BG: DraculaBg},
+	Error:   Style{FG: DraculaRed, BG: DraculaBg},
 
-	Panel:      Style{Border: BorderRounded, BorderFG: Hex("#44475a")},
-	PanelTitle: Style{FG: Hex("#bd93f9"), Bold: true},
+	Panel:      Style{Border: BorderRounded, BorderFG: DraculaSelection},
+	PanelTitle: Style{FG: DraculaPurple, Bold: true},
 
-	Input:      Style{Border: BorderSingle, BorderFG: Hex("#6272a4"), FG: Hex("#f8f8f2")},
-	InputFocus: Style{BorderFG: Hex("#8be9fd")}, // cyan
+	Input:      Style{Border: BorderSingle, BorderFG: DraculaComment, FG: DraculaFg},
+	InputFocus: Style{BorderFG: DraculaCyan},
 
-	ListSelected:  Style{FG: Hex("#8be9fd"), Bold: true},
-	Button:        Style{FG: Hex("#f8f8f2"), Border: BorderSingle, BorderFG: Hex("#6272a4")},
-	ButtonFocus:   Style{Reverse: true, BorderFG: Hex("#bd93f9")},
-	CheckBox:      Style{FG: Hex("#50fa7b")},
-	CheckBoxFocus: Style{Reverse: true, Border: BorderSingle, BorderFG: Hex("#bd93f9")},
+	ListSelected:  Style{FG: DraculaCyan, Bold: true},
+	Button:        Style{FG: DraculaFg, Border: BorderSingle, BorderFG: DraculaComment},
+	ButtonFocus:   Style{Reverse: true, BorderFG: DraculaPurple},
+	CheckBox:      Style{FG: DraculaGreen},
+	CheckBoxFocus: Style{Reverse: true, Border: BorderSingle, BorderFG: DraculaPurple},
 
-	Header: Style{FG: Hex("#bd93f9"), BG: Hex("#282a36"), Bold: true},
-	Footer: Style{FG: Hex("#6272a4"), BG: Hex("#282a36")},
+	Header: Style{FG: DraculaPurple, BG: DraculaBg, Bold: true},
+	Footer: Style{FG: DraculaComment, BG: DraculaBg},
 
-	FocusBorder: Hex("#8be9fd"),
+	FocusBorder: DraculaCyan,
 
-	Dialog:      Style{Border: BorderRounded, BorderFG: Hex("#bd93f9"), BG: Hex("#1e1f29")},
-	DialogTitle: Style{FG: Hex("#bd93f9"), Bold: true},
-	Tag:         Style{FG: Hex("#282a36"), BG: Hex("#bd93f9"), Bold: true},
+	Dialog:      Style{Border: BorderRounded, BorderFG: DraculaPurple, BG: DraculaBgElevated},
+	DialogTitle: Style{FG: DraculaPurple, Bold: true},
+	Tag:         Style{FG: DraculaBg, BG: DraculaPurple, Bold: true},
 
-	NotificationInfo:    Style{FG: Hex("#282a36"), BG: Hex("#8be9fd"), Bold: true},
-	NotificationSuccess: Style{FG: Hex("#282a36"), BG: Hex("#50fa7b"), Bold: true},
-	NotificationWarning: Style{FG: Hex("#282a36"), BG: Hex("#ffb86c"), Bold: true},
-	NotificationError:   Style{FG: Hex("#282a36"), BG: Hex("#ff5555"), Bold: true},
+	NotificationInfo:    Style{FG: DraculaBg, BG: DraculaCyan, Bold: true},
+	NotificationSuccess: Style{FG: DraculaBg, BG: DraculaGreen, Bold: true},
+	NotificationWarning: Style{FG: DraculaBg, BG: DraculaOrange, Bold: true},
+	NotificationError:   Style{FG: DraculaBg, BG: DraculaRed, Bold: true},
 
-	Scrim: Style{BG: Hex("#1a1b24")},
+	Scrim: Style{BG: DraculaBgScrim},
 }
 
 // ThemeNord follows the Nord color scheme (arctic, bluish palette).
@@ -425,41 +425,41 @@ var ThemeDracula = Theme{
 // Reference: https://www.nordtheme.com
 var ThemeNord = Theme{
 	Name:   "nord",
-	Canvas: Style{BG: Hex("#2e3440")},
+	Canvas: Style{BG: Nord0},
 
-	Text:  Style{FG: Hex("#eceff4"), BG: Hex("#2e3440")},
-	Muted: Style{FG: Hex("#4c566a"), BG: Hex("#2e3440")},
+	Text:  Style{FG: Nord6, BG: Nord0},
+	Muted: Style{FG: Nord3, BG: Nord0},
 
-	Accent:  Style{FG: Hex("#88c0d0"), BG: Hex("#2e3440"), Bold: true}, // nord8
-	Success: Style{FG: Hex("#a3be8c"), BG: Hex("#2e3440")},             // nord14
-	Warning: Style{FG: Hex("#ebcb8b"), BG: Hex("#2e3440")},             // nord13
-	Error:   Style{FG: Hex("#bf616a"), BG: Hex("#2e3440")},             // nord11
+	Accent:  Style{FG: Nord8, BG: Nord0, Bold: true},
+	Success: Style{FG: Nord14, BG: Nord0},
+	Warning: Style{FG: Nord13, BG: Nord0},
+	Error:   Style{FG: Nord11, BG: Nord0},
 
-	Panel:      Style{Border: BorderRounded, BorderFG: Hex("#3b4252")},
-	PanelTitle: Style{FG: Hex("#88c0d0"), Bold: true},
+	Panel:      Style{Border: BorderRounded, BorderFG: Nord1},
+	PanelTitle: Style{FG: Nord8, Bold: true},
 
-	Input:      Style{Border: BorderSingle, BorderFG: Hex("#4c566a"), FG: Hex("#eceff4")},
-	InputFocus: Style{BorderFG: Hex("#88c0d0")},
+	Input:      Style{Border: BorderSingle, BorderFG: Nord3, FG: Nord6},
+	InputFocus: Style{BorderFG: Nord8},
 
-	ListSelected:  Style{FG: Hex("#88c0d0"), Bold: true},
-	Button:        Style{FG: Hex("#eceff4"), Border: BorderSingle, BorderFG: Hex("#4c566a")},
-	ButtonFocus:   Style{Reverse: true, BorderFG: Hex("#88c0d0")},
-	CheckBox:      Style{FG: Hex("#a3be8c")},
-	CheckBoxFocus: Style{Reverse: true, Border: BorderSingle, BorderFG: Hex("#88c0d0")},
+	ListSelected:  Style{FG: Nord8, Bold: true},
+	Button:        Style{FG: Nord6, Border: BorderSingle, BorderFG: Nord3},
+	ButtonFocus:   Style{Reverse: true, BorderFG: Nord8},
+	CheckBox:      Style{FG: Nord14},
+	CheckBoxFocus: Style{Reverse: true, Border: BorderSingle, BorderFG: Nord8},
 
-	Header: Style{FG: Hex("#88c0d0"), BG: Hex("#2e3440"), Bold: true},
-	Footer: Style{FG: Hex("#4c566a"), BG: Hex("#2e3440")},
+	Header: Style{FG: Nord8, BG: Nord0, Bold: true},
+	Footer: Style{FG: Nord3, BG: Nord0},
 
-	FocusBorder: Hex("#88c0d0"),
+	FocusBorder: Nord8,
 
-	Dialog:      Style{Border: BorderRounded, BorderFG: Hex("#88c0d0"), BG: Hex("#272c36")},
-	DialogTitle: Style{FG: Hex("#88c0d0"), Bold: true},
-	Tag:         Style{FG: Hex("#2e3440"), BG: Hex("#88c0d0"), Bold: true},
+	Dialog:      Style{Border: BorderRounded, BorderFG: Nord8, BG: NordBgElevated},
+	DialogTitle: Style{FG: Nord8, Bold: true},
+	Tag:         Style{FG: Nord0, BG: Nord8, Bold: true},
 
-	NotificationInfo:    Style{FG: Hex("#2e3440"), BG: Hex("#88c0d0"), Bold: true},
-	NotificationSuccess: Style{FG: Hex("#2e3440"), BG: Hex("#a3be8c"), Bold: true},
-	NotificationWarning: Style{FG: Hex("#2e3440"), BG: Hex("#ebcb8b"), Bold: true},
-	NotificationError:   Style{FG: Hex("#eceff4"), BG: Hex("#bf616a"), Bold: true},
+	NotificationInfo:    Style{FG: Nord0, BG: Nord8, Bold: true},
+	NotificationSuccess: Style{FG: Nord0, BG: Nord14, Bold: true},
+	NotificationWarning: Style{FG: Nord0, BG: Nord13, Bold: true},
+	NotificationError:   Style{FG: Nord6, BG: Nord11, Bold: true},
 
-	Scrim: Style{BG: Hex("#1e2128")},
+	Scrim: Style{BG: NordBgScrim},
 }
