@@ -1,14 +1,92 @@
 ---
 sidebar_position: 8
 title: Custom Components
-description: How to build your own widgets and layout containers in oat-latte.
+description: How to extend oat-latte by building your own widgets and layout containers.
 ---
 
 # Custom Components
 
-## Anatomy of a widget
+The built-in widgets cover most needs, but oat-latte is designed to be extended. This page explains the underlying model and shows you how to build your own widgets and layout containers.
 
-Every custom component embeds `BaseComponent` and (if interactive) `FocusBehavior`:
+---
+
+## How the framework works under the hood
+
+Before writing custom components it helps to understand the three low-level concepts the framework is built on.
+
+### The Component interface
+
+Every element in the tree — layouts, widgets, spacers — implements `Component`:
+
+```go
+type Component interface {
+    Measure(c Constraint) Size
+    Render(buf *Buffer, region Region)
+}
+```
+
+The render pipeline is a strict **two-pass** process on every frame:
+
+1. **Measure** — the parent calls `child.Measure(constraint)` to ask how much space the child wants. `Constraint` carries `MaxWidth` and `MaxHeight`; `-1` means unconstrained.
+2. **Render** — the parent calls `child.Render(buf, region)` to hand the child its allocated rectangle. The child draws into `buf`, clipped to `region`.
+
+Always call `Measure` before `Render` in the same pass. Never cache or store the `Buffer` or `Region` between frames.
+
+### Geometry types
+
+```go
+Size{Width, Height int}               // desired or allocated size in cells
+Region{X, Y, Width, Height int}       // a rectangle on screen
+Constraint{MaxWidth, MaxHeight int}   // available space; -1 = unconstrained
+Insets{Top, Right, Bottom, Left int}  // padding / margin
+```
+
+### Focusable
+
+Interactive components also implement `Focusable`, which lets the focus manager tab between them and route key events to them:
+
+```go
+type Focusable interface {
+    Component
+    SetFocused(focused bool)
+    IsFocused() bool
+    HandleKey(ev *KeyEvent) bool // return true = event consumed
+}
+```
+
+`HandleKey` must return `true` if the component consumed the key event. Returning `false` passes it up the chain (global shortcuts, focus cycling).
+
+### BaseComponent and FocusBehavior
+
+Embed these two types in every custom component to get the boilerplate for free:
+
+```go
+type MyWidget struct {
+    oat.BaseComponent  // ID, Style, FocusStyle, Title, EnsureID(), EffectiveStyle()
+    oat.FocusBehavior  // SetFocused(), IsFocused()
+}
+```
+
+- Call `w.EnsureID()` in the constructor to auto-assign a unique ID.
+- Call `w.EffectiveStyle(w.IsFocused())` in `Render` to get the correctly merged style (focus overlay applied when focused).
+
+### Buffer
+
+`Buffer` wraps the tcell screen with bounds-checked, clipped writes. Components never write to tcell directly. Always call `buf.Sub(region)` to get a clipped sub-buffer before writing:
+
+```go
+func (w *MyWidget) Render(buf *oat.Buffer, region oat.Region) {
+    sub := buf.Sub(region)
+    sub.FillBG(w.Style)
+    sub.DrawText(0, 0, "Hello", w.Style)
+}
+```
+
+---
+
+## Building a custom widget
+
+### 1. Define the struct
 
 ```go
 type CounterWidget struct {
@@ -19,47 +97,45 @@ type CounterWidget struct {
 
 func NewCounterWidget() *CounterWidget {
     w := &CounterWidget{}
-    w.EnsureID() // auto-assigns a unique ID
+    w.EnsureID()
     return w
 }
 ```
 
-## Measure
+### 2. Implement Measure
 
-Return the size your component needs. Respect `Constraint.MaxWidth` and `MaxHeight` — never return a size larger than the constraint allows.
+Return the size your component needs. Never return a size larger than the constraint allows.
 
 ```go
 func (w *CounterWidget) Measure(c oat.Constraint) oat.Size {
-    h := 1 // one row of text
     width := c.MaxWidth
     if width < 0 {
         width = 20 // sensible default when unconstrained
     }
-    return oat.Size{Width: width, Height: h}
+    return oat.Size{Width: width, Height: 1}
 }
 ```
 
-## Render
+### 3. Implement Render
 
-Draw into a clipped sub-buffer. Always call `buf.Sub(region)` first — never write outside the region you were given.
+Draw into a clipped sub-buffer. Use `EffectiveStyle` to get the right colours when focused.
 
 ```go
 func (w *CounterWidget) Render(buf *oat.Buffer, region oat.Region) {
-    style := w.EffectiveStyle(w.IsFocused()) // merges FocusStyle when focused
+    style := w.EffectiveStyle(w.IsFocused())
     sub := buf.Sub(region)
     sub.FillBG(style)
     sub.DrawText(0, 0, fmt.Sprintf("Count: %d", w.count), style)
 }
 ```
 
-## HandleKey
+### 4. Implement HandleKey
 
-Return `true` if you consumed the event; `false` to let the canvas try next.
+Return `true` if you consumed the event; `false` to pass it up the chain.
 
 ```go
 func (w *CounterWidget) HandleKey(ev *oat.KeyEvent) bool {
-    switch ev.Key() {
-    case tcell.KeyRune:
+    if ev.Key() == tcell.KeyRune {
         switch ev.Rune() {
         case '+':
             w.count++
@@ -73,9 +149,9 @@ func (w *CounterWidget) HandleKey(ev *oat.KeyEvent) bool {
 }
 ```
 
-## KeyBindings
+### 5. Advertise shortcuts
 
-Advertise shortcuts to the `StatusBar`. Bindings with a non-nil `Handler` are also executed automatically by `FocusManager.Dispatch`.
+Implement `KeyBindings()` to have hints appear in the status bar. Bindings with a non-nil `Handler` are also executed automatically by the focus manager.
 
 ```go
 func (w *CounterWidget) KeyBindings() []oat.KeyBinding {
@@ -86,24 +162,26 @@ func (w *CounterWidget) KeyBindings() []oat.KeyBinding {
 }
 ```
 
-## ApplyTheme
+### 6. Apply themes
 
-Pick the theme token that best describes your widget's role and use `Merge` to preserve caller-set overrides:
+Pick the theme token that best describes your widget's role and use `Merge` to preserve any caller-set overrides:
 
 ```go
 func (w *CounterWidget) ApplyTheme(t latte.Theme) {
     w.Style      = t.Panel.Merge(w.Style)
-    w.FocusStyle = t.FocusBorder.Merge(w.FocusStyle) // or t.InputFocus, etc.
+    w.FocusStyle = t.InputFocus.Merge(w.FocusStyle)
 }
 ```
 
 :::warning
-Never assign `w.Style = t.SomeToken` directly. This clobbers `BorderExplicitNone` and any other field the caller set before the theme was applied. Always use `Merge`.
+Never assign `w.Style = t.SomeToken` directly. This overwrites `BorderExplicitNone` and any other field the caller set before the theme was applied. Always use `Merge`.
 :::
 
-## Custom layout containers
+---
 
-If your component holds children, also implement `Layout`:
+## Building a custom layout container
+
+If your component holds children, implement `Layout` in addition to `Component`. The framework's tree-walkers (focus collection, theme propagation) depend on `Children()` — a container that hides children from it will break focus and theming.
 
 ```go
 type TwoColumn struct {
@@ -136,18 +214,16 @@ func (c *TwoColumn) Measure(con oat.Constraint) oat.Size {
 
 func (c *TwoColumn) Render(buf *oat.Buffer, region oat.Region) {
     half := region.Width / 2
-    leftRegion  := oat.Region{X: region.X,        Y: region.Y, Width: half,             Height: region.Height}
-    rightRegion := oat.Region{X: region.X + half, Y: region.Y, Width: region.Width-half, Height: region.Height}
-    c.left.Measure(oat.Constraint{MaxWidth: half, MaxHeight: region.Height})
+    leftRegion  := oat.Region{X: region.X,        Y: region.Y, Width: half,              Height: region.Height}
+    rightRegion := oat.Region{X: region.X + half, Y: region.Y, Width: region.Width - half, Height: region.Height}
+    c.left.Measure(oat.Constraint{MaxWidth: half,                MaxHeight: region.Height})
     c.right.Measure(oat.Constraint{MaxWidth: region.Width - half, MaxHeight: region.Height})
     c.left.Render(buf, leftRegion)
     c.right.Render(buf, rightRegion)
 }
 ```
 
-:::tip
-`Children()` must return all direct children. The framework tree-walkers (focus collection, theme propagation) depend on it. A container that hides children from `Children()` will break focus and theming.
-:::
+---
 
 ## Full example: editable counter
 

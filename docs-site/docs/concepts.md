@@ -1,192 +1,229 @@
 ---
 sidebar_position: 3
 title: Core Concepts
-description: The mental model behind oat-latte — components, the render pipeline, and how the pieces fit together.
+description: The three building blocks of every oat-latte application — Canvas, Layouts, and Widgets.
 ---
 
 # Core Concepts
 
-## Component
+Every oat-latte application is built from three kinds of thing: a **Canvas**, **Layouts**, and **Widgets**. Understanding what each one does — and how they relate — is everything you need to build UIs with oat-latte.
 
-Everything in an oat-latte UI is a `Component`:
-
-```go
-type Component interface {
-    Measure(c Constraint) Size
-    Render(buf *Buffer, region Region)
-}
-```
-
-The render pipeline is strictly two-pass on every frame:
-
-1. **Measure** — a parent calls `child.Measure(constraint)` to ask how much space the child wants. The `Constraint` carries `MaxWidth` and `MaxHeight`; `-1` means unconstrained.
-2. **Render** — the parent calls `child.Render(buf, region)` to hand the child its allocated rectangle. The child draws into `buf`, clipped to `region`.
-
-:::warning
-Always call `Measure` before `Render` in the same pass. Never cache or store the `Buffer` or `Region` between frames.
-:::
-
-## Geometry types
-
-```go
-Size{Width, Height int}          // a component's desired or allocated size
-Region{X, Y, Width, Height int}  // a rectangle on screen
-Constraint{MaxWidth, MaxHeight int} // available space; -1 = unconstrained
-Insets{Top, Right, Bottom, Left int} // padding / margin
-```
-
-`oat.Anchor` is a **horizontal-axis** position enum (`AnchorLeft`, `AnchorCenter`, `AnchorRight`) used by `Border.WithTitle`, `ProgressBar.WithPercentage`, and `Divider.WithMaxSize` to control where text or a rule is placed on the horizontal axis.
-
-`oat.VAnchor` is the **vertical-axis** counterpart (`VAnchorTop`, `VAnchorMiddle`, `VAnchorBottom`), used by `Divider.WithMaxSizeV`. The two types are kept separate so the compiler prevents accidentally passing a `VAnchor` to an H-axis API and vice versa.
-
-## Layout
-
-A `Component` that holds children also implements `Layout`:
-
-```go
-type Layout interface {
-    Component
-    Children() []Component
-    AddChild(child Component)
-}
-```
-
-The framework's tree walkers (theme propagation, focus collection, widget lookup by ID) all rely on `Children()`. Any custom container type must implement this interface.
-
-## Focusable
-
-Interactive components implement `Focusable`:
-
-```go
-type Focusable interface {
-    Component
-    SetFocused(focused bool)
-    IsFocused() bool
-    HandleKey(ev *KeyEvent) bool
-}
-```
-
-`HandleKey` returns `true` if the component consumed the event, or `false` to let the canvas try the next handler (focus cycling, global shortcuts like Esc).
-
-## BaseComponent and FocusBehavior
-
-Every custom component should embed these two types:
-
-```go
-type MyWidget struct {
-    oat.BaseComponent  // ID, Style, FocusStyle, Title, EnsureID(), EffectiveStyle()
-    oat.FocusBehavior  // SetFocused(), IsFocused()
-}
-```
-
-- Call `e.EnsureID()` in the constructor to auto-assign a unique ID.
-- Call `e.EffectiveStyle(e.IsFocused())` in `Render` to get the merged style (focus style overlaid on base style).
+---
 
 ## Canvas
 
-`Canvas` is the application root. It owns the tcell screen, the focus manager, the overlay stack, and the event loop.
+The Canvas is the application root. It owns the terminal screen, runs the event loop, manages keyboard focus, and handles overlays (dialogs). You create exactly one Canvas per application.
 
 ```go
 app := oat.NewCanvas(
     oat.WithTheme(latte.ThemeDark),
-    oat.WithHeader(headerComponent),
-    oat.WithBody(bodyComponent),
-    oat.WithAutoStatusBar(statusBar),
-    oat.WithPrimary(firstFocusable),
-    oat.WithGlobalKeyBinding(oat.KeyBinding{   // app-wide shortcut
-        Key: tcell.KeyCtrlT, Label: "^T",
-        Description: "Toggle theme",
-        Handler: func() { /* ... */ },
-    }),
+    oat.WithBody(body),           // the root layout
 )
 if err := app.Run(); err != nil {
     log.Fatal(err)
 }
 ```
 
-The canvas divides the terminal vertically: **header → body → footer**. Header and footer heights are measured each frame; the body fills what remains.
+`Run()` takes over the terminal and blocks until the user quits. The Canvas divides the screen into three vertical regions: an optional **header**, the **body** (fills all remaining space), and an optional **footer** (used by the status bar).
 
-### Key Canvas methods
+### Useful Canvas options
 
-| Method | Description |
+| Option | What it does |
 |---|---|
-| `Run()` | Start the event loop; blocks until quit |
-| `Quit()` | Signal a graceful exit |
-| `SetTheme(t)` | Replace the active theme and re-apply to the full tree |
-| `ShowDialog(d)` | Push a modal overlay; focus moves into it |
-| `HideDialog()` | Pop the topmost overlay; focus returns to body |
+| `WithTheme(t)` | Apply a colour theme to the entire tree |
+| `WithBody(c)` | Set the root layout component |
+| `WithHeader(c)` | Set an optional header component |
+| `WithAutoStatusBar(bar)` | Mount a status bar in the footer |
+| `WithPrimary(f)` | Which widget receives focus first |
+| `WithNotificationManager(n)` | Wire up toast notifications |
+| `WithGlobalKeyBinding(b)` | Register an app-wide keyboard shortcut |
+
+### Useful Canvas methods
+
+| Method | What it does |
+|---|---|
+| `Quit()` | Exit the event loop gracefully |
+| `SetTheme(t)` | Switch themes at runtime |
+| `ShowDialog(d)` | Push a modal dialog; focus moves into it |
+| `HideDialog()` | Dismiss the topmost dialog |
 | `FocusByRef(f)` | Jump focus directly to a specific widget |
-| `GetWidgetByID(id)` | Look up a widget by its string ID |
-| `GetValue(id)` | Get the current value of a widget by ID |
-| `InvalidateLayout()` | Force focus re-collection after tree mutation |
 
-## Buffer
+---
 
-`Buffer` wraps `tcell.Screen` with bounds-checked, clipped writes. Components never write to tcell directly.
+## Layouts
 
-Use `buf.Sub(region)` to get a sub-buffer clipped to a child's region before passing it down:
+Layouts are containers. They hold other components — other layouts, or widgets — and decide how to position and size them. You nest layouts to build any UI structure.
+
+oat-latte ships six layout primitives:
+
+### VBox — vertical stack
+
+Arranges children top-to-bottom. Use `AddFlexChild` to let a child stretch and fill remaining space.
 
 ```go
-func (w *MyWidget) Render(buf *oat.Buffer, region oat.Region) {
-    sub := buf.Sub(region)
-    sub.FillBG(w.Style)
-    sub.DrawText(0, 0, "Hello", w.Style)
-}
+vbox := layout.NewVBox(
+    widget.NewText("Label"),
+    widget.NewEditText().WithHint("Name"),
+)
+vbox.AddFlexChild(widget.NewText(longContent), 1) // stretches to fill
 ```
+
+### HBox — horizontal row
+
+Arranges children left-to-right. Same flex system as VBox.
+
+```go
+hbox := layout.NewHBox()
+hbox.AddFlexChild(listPanel, 1)
+hbox.AddFlexChild(detailPanel, 3)  // 3× wider than the list
+```
+
+### Border — framed panel
+
+Wraps any component in a titled border. Border panels automatically highlight their frame when a descendant is focused.
+
+```go
+panel := layout.NewBorder(innerComponent).
+    WithTitle("My Panel").
+    WithRoundedCorner(true)
+```
+
+### Padding
+
+Adds whitespace around a component without drawing a border.
+
+```go
+padded := layout.NewPaddingUniform(child, 1)  // 1 cell on all sides
+```
+
+### Grid
+
+Places children into a fixed row × column grid with optional spanning.
+
+```go
+g := layout.NewGrid(2, 3) // 2 rows, 3 cols
+g.AddChildAt(widget, 0, 0, 1, 2) // row 0, col 0, span 1 row × 2 cols
+```
+
+### Spacers — VFill and HFill
+
+Empty spacers that consume leftover space. Use them to push widgets to the edges of a box.
+
+```go
+btnRow := layout.NewHBox()
+btnRow.AddChild(layout.NewHFill())  // pushes buttons to the right
+btnRow.AddChild(cancelBtn)
+btnRow.AddChild(layout.NewHFill().WithMaxSize(2)) // fixed 2-cell gap
+btnRow.AddChild(okBtn)
+```
+
+### Composing layouts
+
+Layouts nest freely. A typical two-panel app:
+
+```go
+list   := widget.NewList(items)
+detail := widget.NewText("")
+
+list.WithOnCursorChange(func(_ int, item widget.ListItem) {
+    detail.SetText(fmt.Sprint(item.Value))
+})
+
+body := layout.NewHBox()
+body.AddFlexChild(layout.NewBorder(list).WithTitle("Items"),   1)
+body.AddFlexChild(layout.NewBorder(detail).WithTitle("Detail"), 3)
+```
+
+---
+
+## Widgets
+
+Widgets are the leaves of the tree — the elements users actually see and interact with. oat-latte ships a full set out of the box. See the **Widgets** section in the sidebar for the full reference for each one.
+
+### Display widgets
+
+| Widget | What it renders |
+|---|---|
+| `widget.NewText(s)` | Static text with word-wrap and scroll |
+| `widget.NewTitle(s)` | Bold heading with an optional rule beneath |
+| `widget.NewLabel(tags)` | Row of inline badge chips |
+| `widget.NewProgressBar()` | Horizontal fill bar with optional percent label |
+| `widget.NewDivider(axis)` | Horizontal or vertical rule |
+
+### Interactive widgets
+
+| Widget | What it does |
+|---|---|
+| `widget.NewButton(label, fn)` | Pressable button; fires `fn` on Enter or Space |
+| `widget.NewEditText()` | Single-line text input |
+| `widget.NewMultiLineEditText()` | Multi-line text input |
+| `widget.NewCheckBox(label)` | Boolean toggle |
+| `widget.NewList(items)` | Scrollable, selectable list |
+
+### App-level widgets
+
+| Widget | What it does |
+|---|---|
+| `widget.NewDialog(title)` | Modal overlay with scrim backdrop |
+| `widget.NewStatusBar()` | Footer bar that shows key-binding hints |
+| `widget.NewNotificationManager()` | Toast notifications pushed from anywhere |
+
+### Wiring widgets together
+
+Widgets communicate through callbacks, not through a central model. Set a callback on one widget to update another:
+
+```go
+input := widget.NewEditText().WithHint("Search")
+list  := widget.NewList(allItems)
+
+input.WithOnChange(func(text string) {
+    list.SetItems(filter(allItems, text))
+})
+```
+
+### Reading widget values
+
+Every interactive widget implements `ValueGetter`. The Canvas can look up any widget's current value by its ID:
+
+```go
+nameInput := widget.NewEditText().WithID("name")
+// ... later ...
+val, _ := app.GetValue("name") // returns the current text as interface{}
+```
+
+---
 
 ## Putting it together
 
-A typical application follows this shape:
+A complete application assembles these three layers:
 
 ```go
-type App struct {
-    canvas *oat.Canvas
-    notifs *widget.NotificationManager
-    list   *widget.List
-    detail *widget.Text
-}
-
-func (a *App) build() {
-    a.list   = widget.NewList(items)
-    a.detail = widget.NewText("")
-
-    a.list.WithOnCursorChange(func(_ int, item widget.ListItem) {
-        a.detail.SetText(fmt.Sprint(item.Value))
+func main() {
+    // 1. Widgets
+    input  := widget.NewEditText().WithHint("Name").WithID("name")
+    result := widget.NewText("—")
+    btn    := widget.NewButton("Save", func() {
+        result.SetText("Saved: " + input.GetText())
     })
 
-    body := layout.NewHBox()
-    body.AddFlexChild(layout.NewBorder(a.list).WithTitle("Items"),   1)
-    body.AddFlexChild(layout.NewBorder(a.detail).WithTitle("Detail"), 3)
+    // 2. Layouts
+    body := layout.NewBorder(
+        layout.NewPaddingUniform(
+            layout.NewVBox(input, btn, result),
+            1,
+        ),
+    ).WithTitle("New item")
 
-    statusBar := widget.NewStatusBar()
-    a.notifs  = widget.NewNotificationManager()
-
-    themes := []latte.Theme{latte.ThemeDark, latte.ThemeLight, latte.ThemeDracula, latte.ThemeNord}
-    themeIdx := 0
-
-    a.canvas = oat.NewCanvas(
-        oat.WithTheme(themes[themeIdx]),
+    // 3. Canvas
+    app := oat.NewCanvas(
+        oat.WithTheme(latte.ThemeDark),
         oat.WithBody(body),
-        oat.WithAutoStatusBar(statusBar),
-        oat.WithPrimary(a.list),
-        oat.WithNotificationManager(a.notifs),  // wires channel + mounts as persistent overlay
-        oat.WithGlobalKeyBinding(oat.KeyBinding{
-            Key:         tcell.KeyCtrlT,
-            Label:       "^T",
-            Description: "Toggle theme",
-            Handler: func() {
-                themeIdx = (themeIdx + 1) % len(themes)
-                a.canvas.SetTheme(themes[themeIdx])
-            },
-        }),
+        oat.WithPrimary(input),
     )
-}
-
-func main() {
-    a := &App{}
-    a.build()
-    if err := a.canvas.Run(); err != nil {
+    if err := app.Run(); err != nil {
         log.Fatal(err)
     }
 }
 ```
+
+Once you are comfortable with these three layers, the [Tutorial](/docs/tutorial) walks you through building a full task-list application step by step.

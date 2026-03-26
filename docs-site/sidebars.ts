@@ -4,13 +4,13 @@ const sidebars: SidebarsConfig = {
     docsSidebar: [
         'intro',
         'installation',
+        'concepts',
         {
             type: 'category',
             label: 'Tutorial',
             link: {type: 'doc', id: 'tutorial/index'},
             items: [],
         },
-        'concepts',
         {
             type: 'category',
             label: 'Layout',

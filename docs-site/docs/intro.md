@@ -8,6 +8,35 @@ description: What oat-latte is, why it exists, and how it compares to Bubble Tea
 
 oat-latte is a component-based TUI (terminal UI) framework for Go. It gives you a declarative component model, a two-pass layout engine, and a full widget library — all rendered through [tcell](https://github.com/gdamore/tcell).
 
+## Three things to know
+
+Every oat-latte application is built from exactly three kinds of thing:
+
+| | What it does |
+|---|---|
+| **Canvas** | Owns the terminal screen and runs the event loop. You create one Canvas per application and call `Run()`. |
+| **Layouts** | Containers that position their children — `VBox`, `HBox`, `Border`, `Grid`, and more. You nest them to build any UI structure. |
+| **Widgets** | The interactive and display elements — `Text`, `Button`, `EditText`, `List`, `CheckBox`, `ProgressBar`, and more. Widgets live inside layouts. |
+
+That's the whole model. A minimal app looks like this:
+
+```go
+body := layout.NewBorder(
+    layout.NewVBox(
+        widget.NewText("Hello!"),
+        widget.NewButton("Quit", func() { app.Quit() }),
+    ),
+).WithTitle("My App")
+
+app := oat.NewCanvas(
+    oat.WithTheme(latte.ThemeDark),
+    oat.WithBody(body),
+)
+app.Run()
+```
+
+You pick widgets, arrange them in layouts, hand the root layout to a Canvas, and call `Run()`. Everything else — focus, key handling, theming, redraws — is handled for you.
+
 ## Why it exists
 
 After spending time with [Bubble Tea](https://github.com/charmbracelet/bubbletea) and genuinely enjoying it, I found myself wondering whether there was space for a different mental model — one that felt more familiar to developers coming from GUI frameworks.
@@ -20,18 +49,13 @@ My background includes a good stretch of Flutter development, and Flutter's appr
 
 ### Bubble Tea's model
 
-Bubble Tea is built on the [Elm architecture](https://guide.elm-lang.org/architecture/): your entire application is a single `Model`, events arrive as `Msg` values, a `Update` function returns the next model, and a `View` function renders it as a string. The framework is intentional about keeping you close to the metal — you compose views by concatenating strings and ANSI sequences, which gives you complete control over every character on screen.
+Bubble Tea is built on the [Elm architecture](https://guide.elm-lang.org/architecture/): your entire application is a single `Model`, events arrive as `Msg` values, an `Update` function returns the next model, and a `View` function renders it as a string. The framework is intentional about keeping you close to the metal — you compose views by concatenating strings and ANSI sequences, which gives you complete control over every character on screen.
 
 This is a powerful model. It is explicit, pure, and very testable. If you want to deeply understand what your TUI is doing at every step, or if you need fine-grained control over rendering, Bubble Tea is likely the better tool.
 
 ### oat-latte's model
 
-oat-latte takes a different approach. Instead of a central model and a view function, the UI is a **tree of components**. Each component implements two methods:
-
-- `Measure` — given available space as a constraint, return the desired size
-- `Render` — given an allocated region, draw into a buffer
-
-Layout containers own their children, pass constraints down, and allocate regions. Widgets are self-contained: they own their state, handle their own key events, and paint themselves. You wire them together with callbacks rather than routing messages through a central update function.
+oat-latte takes a different approach. The UI is a **tree of components**. Layout containers own their children, pass constraints down, and allocate regions. Widgets are self-contained: they own their state, handle their own key events, and paint themselves. You wire them together with callbacks rather than routing messages through a central update function.
 
 This makes it straightforward to build structured UIs — forms, dashboards, list-detail views — without writing layout arithmetic by hand. The trade-off is that you are further from the raw terminal than you would be with Bubble Tea.
 
@@ -40,21 +64,12 @@ This makes it straightforward to build structured UIs — forms, dashboards, lis
 | | oat-latte | Bubble Tea |
 |---|---|---|
 | Mental model | Component tree (Flutter-like) | Elm architecture |
-| Layout | Automatic (Measure/Render) | Manual string composition |
+| Layout | Automatic | Manual string composition |
 | State management | Per-widget, callback-driven | Central model + Update |
 | Best for | Structured UIs, forms, dashboards | Any TUI; especially custom or artistic layouts |
 | Control over rendering | High-level | Low-level |
-| Go deep into TUI internals | Less so | Yes — this is its strength |
 
-If you want to go deep into how terminal UIs work at the core — raw sequences, full control over the render loop, and a functional reactive style — Bubble Tea is still the better approach and I would wholeheartedly recommend it. oat-latte is for when you want to skip the layout plumbing and think in components.
-
-## What you get
-
-- **Component model** — every element implements a two-method interface: `Measure` and `Render`. Parents ask children for their size, then hand them a region to draw into.
-- **Layout primitives** — `VBox`, `HBox`, `Grid`, `Border`, `Padding`, `Dialog`, and flex spacers (`VFill`, `HFill`) cover the vast majority of real layouts without custom sizing code.
-- **Widget library** — `Text`, `Button`, `CheckBox`, `EditText` (single- and multi-line), `List`, `Label`, `ProgressBar`, `StatusBar`, `NotificationManager`, `Dialog`, and `Divider` out of the box.
-- **Focus system** — automatic DFS-ordered Tab/Shift-Tab cycling; `HandleKey` returns a boolean so components can pass events up the chain; programmatic `FocusByRef` for instant jumps.
-- **Theme system** — five built-in themes (`Default`, `Dark`, `Light`, `Dracula`, `Nord`); a `Style.Merge` cascade lets per-widget overrides survive theme application.
+If you want to go deep into how terminal UIs work at the core — raw sequences, full control over the render loop, and a functional reactive style — Bubble Tea is still the better approach. oat-latte is for when you want to skip the layout plumbing and think in components.
 
 ## Next step
 
