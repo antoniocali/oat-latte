@@ -10,7 +10,9 @@ All notable changes to the oat-latte framework are listed here, newest first.
 
 ## v0.2.7
 
-**`ThemeLight` colour fixes · theme-aware accent colours · `Buffer` background inheritance**
+_(v0.2.6 was skipped — these changes were shipped directly as v0.2.7.)_
+
+**`ComponentList` widget · `ThemeLight` colour fixes · theme-aware accent colours · `Buffer` background inheritance**
 
 ### Fixed
 
