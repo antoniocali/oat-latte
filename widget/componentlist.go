@@ -54,6 +54,19 @@ type ComponentList struct {
 	// rowHeight caches the measured height of each row from the last Measure
 	// call. Re-populated on every Measure so it is always current.
 	rowHeight []int
+
+	// lastTheme stores the most recently applied theme so that SetItems can
+	// apply it to newly-added row components that were not present during the
+	// original applyThemeTree walk.
+	lastTheme *latte.Theme
+
+	// callerStyle and callerSelectedStyle preserve the styles set by the caller
+	// (via WithStyle / WithSelectedStyle) before any theme application. This lets
+	// ApplyTheme always derive the effective style from the current theme merged
+	// with the original caller overrides, so switching themes fully replaces the
+	// previous theme's colours rather than leaving stale values stuck in Style.
+	callerStyle         latte.Style
+	callerSelectedStyle latte.Style
 }
 
 // NewComponentList creates a ComponentList with the given items.
@@ -76,7 +89,11 @@ func NewComponentList(items []ComponentListItem) *ComponentList {
 }
 
 // WithStyle sets the display style for this ComponentList.
-func (l *ComponentList) WithStyle(s latte.Style) *ComponentList { l.Style = s; return l }
+func (l *ComponentList) WithStyle(s latte.Style) *ComponentList {
+	l.Style = s
+	l.callerStyle = s
+	return l
+}
 
 // WithID sets a user-defined identifier on this component.
 func (l *ComponentList) WithID(id string) *ComponentList { l.ID = id; return l }
@@ -95,6 +112,7 @@ func (l *ComponentList) WithCursor(cursor string) *ComponentList { l.cursor = cu
 // WithSelectedStyle overrides the highlight style for the selected row.
 func (l *ComponentList) WithSelectedStyle(s latte.Style) *ComponentList {
 	l.selectedStyle = s
+	l.callerSelectedStyle = s
 	return l
 }
 
@@ -117,7 +135,9 @@ func (l *ComponentList) WithOnDelete(fn func(int, ComponentListItem)) *Component
 	return l
 }
 
-// SetItems replaces the list contents.
+// SetItems replaces the list contents. If a theme has previously been applied
+// via ApplyTheme, it is automatically re-applied to all new row components so
+// that items added after the canvas was constructed are styled consistently.
 func (l *ComponentList) SetItems(items []ComponentListItem) {
 	l.items = items
 	if l.selected >= len(items) {
@@ -127,6 +147,34 @@ func (l *ComponentList) SetItems(items []ComponentListItem) {
 		l.selected = 0
 	}
 	l.rowHeight = nil // invalidate cache
+
+	// Apply the active theme to newly-supplied row components. This is
+	// necessary because the canvas's applyThemeTree walk only visits the tree
+	// that exists at the time the theme is applied; components created
+	// afterwards (e.g. rows added by the user at runtime) miss that walk.
+	if l.lastTheme != nil {
+		for _, item := range l.items {
+			if item.Component != nil {
+				applyTheme(item.Component, *l.lastTheme)
+			}
+		}
+	}
+}
+
+// applyTheme recursively applies t to c and all its descendants.
+// This mirrors canvas.applyThemeTree but is package-local to avoid the import cycle.
+func applyTheme(c oat.Component, t latte.Theme) {
+	if c == nil {
+		return
+	}
+	if tr, ok := c.(interface{ ApplyTheme(latte.Theme) }); ok {
+		tr.ApplyTheme(t)
+	}
+	if l, ok := c.(oat.Layout); ok {
+		for _, child := range l.Children() {
+			applyTheme(child, t)
+		}
+	}
 }
 
 // SelectedIndex returns the currently highlighted index.
@@ -371,13 +419,17 @@ func (l *ComponentList) Render(buf *oat.Buffer, region oat.Region) {
 	}
 }
 
-// ApplyTheme applies theme tokens to the ComponentList.
-// The theme acts as the base; any style fields already set on the widget
-// take precedence.
+// ApplyTheme applies theme tokens to the ComponentList and stores the theme so
+// that SetItems can re-apply it to new row components added at runtime.
+//
+// ApplyTheme always re-derives Style from the theme token merged with the
+// original callerStyle so that repeated calls (e.g. on theme switch) correctly
+// replace the previous theme's colours rather than accumulating stale values.
 func (l *ComponentList) ApplyTheme(t latte.Theme) {
-	l.Style = t.Text.Merge(l.Style)
-	l.FocusStyle = latte.Style{BorderFG: t.FocusBorder}.Merge(l.FocusStyle)
-	l.selectedStyle = t.ListSelected.Merge(l.selectedStyle)
+	l.lastTheme = &t
+	l.Style = t.Text.Merge(l.callerStyle)
+	l.FocusStyle = latte.Style{BorderFG: t.FocusBorder}
+	l.selectedStyle = t.ListSelected.Merge(l.callerSelectedStyle)
 }
 
 func (l *ComponentList) HandleKey(ev *oat.KeyEvent) bool {

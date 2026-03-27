@@ -14,12 +14,13 @@ import (
 // Text renders a static string. Supports optional word-wrap and scrolling.
 type Text struct {
 	oat.BaseComponent
-	text       string
-	wordWrap   bool
-	scrollable bool
-	scrollOff  int      // scroll offset in lines
-	lines      []string // cached wrapped lines
-	lastWidth  int
+	text        string
+	wordWrap    bool
+	scrollable  bool
+	scrollOff   int      // scroll offset in lines
+	lines       []string // cached wrapped lines
+	lastWidth   int
+	callerStyle latte.Style // style set by the caller before any theme application
 }
 
 // NewText creates a Text widget with the given content.
@@ -30,7 +31,7 @@ func NewText(text string) *Text {
 }
 
 // WithStyle sets the display style for this Text widget.
-func (t *Text) WithStyle(s latte.Style) *Text { t.Style = s; return t }
+func (t *Text) WithStyle(s latte.Style) *Text { t.Style = s; t.callerStyle = s; return t }
 
 // WithID sets a user-defined identifier on this component.
 func (t *Text) WithID(id string) *Text { t.ID = id; return t }
@@ -51,20 +52,26 @@ func (t *Text) SetText(text string) { t.text = text; t.lines = nil }
 func (t *Text) GetText() string { return t.text }
 
 // ApplyTheme applies the Text semantic token from the theme.
-// The theme acts as the base; any style fields already set on the widget
-// (via WithStyle) take precedence via Merge.
+// The theme acts as the base; any style fields explicitly set by the caller
+// (via WithStyle before the first theme application) take precedence via Merge.
 //
-// Note: only foreground attributes (FG, Bold, Italic, etc.) are inherited from
-// the theme's Text token. BG is intentionally excluded so that Text widgets
-// composited inside containers (e.g. ComponentList rows, HBox cells) inherit
-// the parent's background — which may be a highlight colour — rather than
-// overwriting it with the canvas background. Callers that need an explicit
-// background on a standalone Text widget can set it via WithStyle.
+// Note: BG is intentionally excluded from the inherited theme token so that
+// Text widgets composited inside containers (e.g. ComponentList rows, HBox
+// cells) inherit the parent's background — which may be a highlight colour —
+// rather than overwriting it with the canvas background. Callers that need
+// an explicit background on a standalone Text widget can set it via WithStyle.
+//
+// ApplyTheme always re-derives Style from the theme token merged with the
+// original callerStyle so that repeated calls (e.g. on theme switch) correctly
+// replace the previous theme's colours rather than accumulating stale values.
 func (t *Text) ApplyTheme(th latte.Theme) {
-	// Strip BG from the theme token before merging so Text stays transparent.
+	// Strip BG from the theme token so Text is transparent inside containers.
 	themeText := th.Text
 	themeText.BG = latte.ColorDefault
-	t.Style = themeText.Merge(t.Style)
+	// Always start from the theme token and merge the caller's original style on
+	// top. Using callerStyle (not the current Style) prevents stale values from
+	// a previous theme from permanently overriding the new theme's colours.
+	t.Style = themeText.Merge(t.callerStyle)
 }
 
 // --- oat.Scrollable --------------------------------------------------------
