@@ -8,6 +8,35 @@ All notable changes to the oat-latte framework are listed here, newest first.
 
 ---
 
+## v0.2.7
+
+**`ThemeLight` colour fixes · theme-aware accent colours · `Buffer` background inheritance**
+
+### Fixed
+
+- **`ThemeLight` colour palette** — several tokens produced illegible or visually incorrect output:
+  - `ListSelected` had no background colour → added `LightBgSelected = RGB(219, 228, 253)` (light cobalt tint).
+  - `Header` / `Footer` used the canvas background (`LightBg`) → added `LightBgHeader = RGB(232, 229, 224)` (slightly darker warm gray) so header and footer regions are visually distinct.
+  - `LightBgScrim` was too close to the canvas colour, making dialogs nearly invisible → darkened from `RGB(224, 220, 215)` to `RGB(180, 175, 168)`.
+  - `LightMuted` failed WCAG AA contrast against the light background → darkened from `#8e8e9a` to `RGB(110, 110, 125)` (`#6e6e7d`).
+- **All four true-color themes (`ThemeDark`, `ThemeLight`, `ThemeDracula`, `ThemeNord`)** — `Panel.BG` was `ColorDefault` (unfilled), causing panel backgrounds to appear as terminal-black instead of the theme canvas colour. Each theme now has an explicit `Panel.BG` matching its canvas background.
+- **`StatusBar` — hardcoded `ColorBrightCyan` for key-hint brackets** → `ApplyTheme` now reads `t.Accent.FG` and stores it as `accentColor`; bracket labels are rendered in the active theme's accent colour. Falls back to `ColorBrightCyan` for `ThemeDefault` (ANSI-16).
+- **`ComponentList` — hardcoded `ColorBrightCyan` for the `>` cursor glyph** → same fix; cursor colour is now driven by `t.Accent.FG` via `accentColor`.
+- **`Buffer` background inheritance** — the root cause of all "terminal-black bleed-through" bugs on light (and custom) themes. tcell has no transparency: every `SetContent` call with `tcell.ColorDefault` paints terminal black over any background the parent already drew. Fixed by adding a `bg latte.Color` field to `Buffer`:
+  - `Fill` / `FillBG` record `style.BG` into `b.bg` when it is a concrete colour (the canvas pre-fill establishes the theme background for the whole tree).
+  - `Sub` propagates `bg` to child buffers, so every widget in the tree inherits the canvas background colour automatically.
+  - New `resolveStyle`: substitutes `b.bg` for `ColorDefault` in `style.BG` before passing to tcell.
+  - New `resolveBorderStyle`: same substitution for `style.BorderBG`.
+  - `SetCell`, `DrawText`, `DrawTextAligned` all call `resolveStyle`.
+  - `DrawBorderTitle` calls `resolveBorderStyle` for border runes and `resolveStyle` for title text.
+  - Custom widgets that draw with `BG == ColorDefault` automatically inherit the canvas background — no code changes required. Only override `BG` when a widget intentionally wants a specific background colour.
+
+### Changed
+
+- `latte/colors.go` — two new `Light*` palette constants (`LightBgSelected`, `LightBgHeader`) and updated values for `LightBgScrim` and `LightMuted`.
+
+---
+
 ## v0.2.6
 
 **`widget.ComponentList` — component-row list**

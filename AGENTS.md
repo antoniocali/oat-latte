@@ -911,6 +911,7 @@ func main() {
 
 - Never call `Render` without having called `Measure` first in the same pass.
 - Never write to a `Buffer` outside the `Region` passed to `Render` — use `buf.Sub(region)` to get a clipped sub-buffer and write into that.
+- `Buffer` propagates the canvas background colour (`bg`) through `Sub`. Any cell drawn with `BG == ColorDefault` inherits this colour instead of the terminal default (typically black). Custom widgets do not need to explicitly fill a background unless they want a colour different from the canvas — `DrawText` with no `BG` set is always safe and visually correct on any theme.
 - `BorderExplicitNone` (`-1`) actively suppresses a border. Check both `BorderNone` and `BorderExplicitNone` in render guards.
 - `Style.Merge` preserves `BorderExplicitNone` through the cascade — do not use direct struct assignment in `ApplyTheme`.
 - `Canvas.InvalidateLayout()` must be called after any dynamic addition or removal of components from the tree to re-collect focusable nodes.
