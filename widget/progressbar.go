@@ -18,6 +18,12 @@ type ProgressBar struct {
 	emptyChar     rune
 	showPercent   bool
 	percentAnchor oat.Anchor // where the "XX%" label is placed
+
+	// callerStyle preserves the style set by the caller (via WithStyle) before
+	// any theme application. ApplyTheme always merges the current theme token
+	// with this original so that switching themes fully replaces the previous
+	// theme's colours rather than accumulating stale values.
+	callerStyle latte.Style
 }
 
 // NewProgressBar creates a ProgressBar.
@@ -34,7 +40,7 @@ func NewProgressBar() *ProgressBar {
 }
 
 // WithStyle sets the display style for this ProgressBar.
-func (p *ProgressBar) WithStyle(s latte.Style) *ProgressBar { p.Style = s; return p }
+func (p *ProgressBar) WithStyle(s latte.Style) *ProgressBar { p.Style = s; p.callerStyle = s; return p }
 
 // SetStyle replaces the bar's display style.
 // Deprecated: use WithStyle instead.
@@ -45,6 +51,26 @@ func (p *ProgressBar) WithID(id string) *ProgressBar { p.ID = id; return p }
 
 // GetValue implements oat.ValueGetter. Returns the current progress as a float64 (0.0–1.0).
 func (p *ProgressBar) GetValue() interface{} { return p.value }
+
+// WithHAlign sets the horizontal alignment for this widget within a VBox slot.
+// No argument (or HAlignFill) resets to the default fill behaviour.
+func (p *ProgressBar) WithHAlign(a ...oat.HAlign) *ProgressBar {
+	p.BaseComponent.HAlign = oat.HAlignFill
+	if len(a) > 0 {
+		p.BaseComponent.HAlign = a[0]
+	}
+	return p
+}
+
+// WithVAlign sets the vertical alignment for this widget within an HBox slot.
+// No argument (or VAlignFill) resets to the default fill behaviour.
+func (p *ProgressBar) WithVAlign(a ...oat.VAlign) *ProgressBar {
+	p.BaseComponent.VAlign = oat.VAlignFill
+	if len(a) > 0 {
+		p.BaseComponent.VAlign = a[0]
+	}
+	return p
+}
 
 // WithFillChar sets the rune used for the filled portion.
 func (p *ProgressBar) WithFillChar(r rune) *ProgressBar { p.fillChar = r; return p }
@@ -76,8 +102,10 @@ func (p *ProgressBar) WithPercentage(show bool, anchor ...oat.Anchor) *ProgressB
 }
 
 // ApplyTheme applies theme tokens to the ProgressBar.
+// The theme acts as the base; any style fields explicitly set by the caller
+// (via WithStyle) take precedence via Merge.
 func (p *ProgressBar) ApplyTheme(t latte.Theme) {
-	p.Style = t.Accent
+	p.Style = t.Accent.Merge(p.callerStyle)
 }
 
 // SetValue sets the progress value (0.0–1.0). Values are clamped.

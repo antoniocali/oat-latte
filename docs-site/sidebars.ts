@@ -31,7 +31,8 @@ const sidebars: SidebarsConfig = {
                 'widgets/progressbar',
                 'widgets/notifications',
                 'widgets/statusbar',
-                'widgets/dialog'
+                'widgets/dialog',
+                'widgets/divider',
             ],
         },
         'themes',

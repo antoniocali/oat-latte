@@ -44,6 +44,7 @@ if err := app.Run(); err != nil {
 |---|---|
 | `Quit()` | Exit the event loop gracefully |
 | `SetTheme(t)` | Switch themes at runtime |
+| `GetTheme()` | Return a pointer to the active theme (`nil` if none set) |
 | `ShowDialog(d)` | Push a modal dialog; focus moves into it |
 | `HideDialog()` | Dismiss the topmost dialog |
 | `FocusByRef(f)` | Jump focus directly to a specific widget |
@@ -68,6 +69,13 @@ vbox := layout.NewVBox(
 vbox.AddFlexChild(widget.NewText(longContent), 1) // stretches to fill
 ```
 
+Use `WithHAlign` to align children horizontally within their slot (instead of filling the full width):
+
+```go
+// Every child centred horizontally
+vbox := layout.NewVBox(title, body, footer).WithHAlign(oat.HAlignCenter)
+```
+
 ### HBox — horizontal row
 
 Arranges children left-to-right. Same flex system as VBox.
@@ -76,6 +84,13 @@ Arranges children left-to-right. Same flex system as VBox.
 hbox := layout.NewHBox()
 hbox.AddFlexChild(listPanel, 1)
 hbox.AddFlexChild(detailPanel, 3)  // 3× wider than the list
+```
+
+Use `WithVAlign` to align children vertically within their slot:
+
+```go
+// Status badges pinned to the bottom of each column
+hbox := layout.NewHBox(iconText, nameText, statusChip).WithVAlign(oat.VAlignBottom)
 ```
 
 ### Border — framed panel
@@ -116,6 +131,20 @@ btnRow.AddChild(cancelBtn)
 btnRow.AddChild(layout.NewHFill().WithMaxSize(2)) // fixed 2-cell gap
 btnRow.AddChild(okBtn)
 ```
+
+### AlignChild — per-child alignment override
+
+`AlignChild` wraps a single component and overrides its alignment within the parent box — useful when one child needs different alignment from the rest, or when you want alignment set inline rather than on the widget itself.
+
+```go
+// Save pinned right, Cancel pinned left — no spacer widgets needed
+vbox := layout.NewVBox(
+    layout.NewAlignChild(saveBtn,   oat.HAlignRight, oat.VAlignFill),
+    layout.NewAlignChild(cancelBtn, oat.HAlignLeft,  oat.VAlignFill),
+)
+```
+
+See the [Layout reference](./layout.md#alignchild) for the full API and more examples.
 
 ### Composing layouts
 

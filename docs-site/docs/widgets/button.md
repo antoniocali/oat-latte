@@ -8,7 +8,7 @@ description: Clickable action trigger widget.
 
 `widget.Button` is a focusable action trigger. It fires a callback when the user presses `Enter` or `Space`.
 
-All built-in themes set `Border: BorderSingle` on the `Button` token, so buttons always render with a visible border box:
+All built-in themes set `Border: BorderSingle` and `RoundedCorner: true` on the `Button` token, so buttons automatically render with rounded arc corners:
 
 ```
 ╭────────╮
@@ -28,9 +28,9 @@ btn := widget.NewButton("Save", func() {
 
 | Method | Description |
 |---|---|
-| `WithStyle(s latte.Style)` | Override the display style (see validation rules below) |
+| `WithStyle(s latte.Style)` | Override the display style |
 | `WithID(id string)` | Set a stable identifier for `Canvas.GetValue(id)` |
-| `WithRoundedCorner(bool)` | Draw arc corners (`╭╮╰╯`) instead of square ones |
+| `WithRoundedCorner(bool)` | Explicitly enable or disable arc corners (`╭╮╰╯`) |
 
 ## Border and height
 
@@ -51,34 +51,34 @@ btn := widget.NewButton("Danger", onDelete).
     WithStyle(latte.Style{FG: latte.ColorRed, Bold: true})
 ```
 
-`WithStyle` validates the border field immediately and **panics** if an incompatible style is passed:
-
-| Border value | Allowed |
-|---|---|
-| `BorderNone` (0) | Yes |
-| `BorderExplicitNone` (-1) | Yes |
-| `BorderSingle` (1) | Yes |
-| `BorderRounded` (2) | Yes |
-| `BorderDouble` (3) | **Panics** |
-| `BorderThick` (4) | **Panics** |
-| `BorderDashed` (5) | **Panics** |
-
 The theme supplies focus colours on top of whatever style you set. Use `WithStyle` to control the unfocused appearance only.
 
 ## WithRoundedCorner
 
 ```go
+// Explicit opt-in — overrides the theme's RoundedCorner setting for this button.
 btn := widget.NewButton("OK", fn).
     WithRoundedCorner(true)
+
+// Explicit opt-out — disables arc corners even when the active theme has RoundedCorner: true.
+btn := widget.NewButton("Cancel", fn).
+    WithRoundedCorner(false)
 ```
 
-Draws arc corners (`╭╮╰╯`) instead of square ones (`┌┐└┘`).
+- `true` — draws arc corners (`╭╮╰╯`) instead of square ones (`┌┐└┘`).
+- `false` — disables arc corners regardless of the theme's `RoundedCorner` setting.
+- **Once called, this explicit choice overrides the theme** for this button. Buttons that never call `WithRoundedCorner` inherit the theme's `RoundedCorner` value automatically via `ApplyTheme`.
+- If the button's resolved border style is **incompatible** with arc corners (`BorderDouble`, `BorderThick`, `BorderDashed`), the rounded-corner request is a **silent no-op** — the button keeps its original square corners without panicking.
 
-- `true` — arc corners active. The border style must be `BorderSingle` or `BorderRounded` at render time, otherwise **panics at render time**.
-- `false` — no-op (square corners are the default).
+```go
+// Silent no-op example — dashed border stays square, no panic.
+btn := widget.NewButton("Dashed", fn).
+    WithStyle(latte.Style{Border: latte.BorderDashed}).
+    WithRoundedCorner(true)  // silently ignored; dashed stays square
+```
 
 :::tip
-`WithRoundedCorner(true)` is equivalent to `WithStyle(latte.Style{Border: latte.BorderRounded})`. The explicit style approach is more portable.
+Because all built-in themes set `RoundedCorner: true`, you do not need to call `WithRoundedCorner(true)` on every button — it happens automatically when a theme is applied. Only call it explicitly when you want to override the theme's default.
 :::
 
 ## With an ID

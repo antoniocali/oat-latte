@@ -21,7 +21,7 @@ Run `go get github.com/antoniocali/oat-latte` inside your module root.
 |---|---|
 | `github.com/antoniocali/oat-latte` | `Canvas`, `Buffer`, `FocusManager`, core interfaces, geometry types |
 | `github.com/antoniocali/oat-latte/latte` | `Style`, `Color`, `BorderStyle`, `Theme`, built-in themes |
-| `github.com/antoniocali/oat-latte/layout` | `VBox`, `HBox`, `Grid`, `Border`, `Padding`, `VFill`, `HFill`, `Dialog` |
+| `github.com/antoniocali/oat-latte/layout` | `VBox`, `HBox`, `Grid`, `Border`, `Padding`, `VFill`, `HFill`, `FlexChild`, `AlignChild` |
 | `github.com/antoniocali/oat-latte/widget` | All built-in widgets |
 
 ## Minimal working program

@@ -199,12 +199,26 @@ Global bindings registered with `WithGlobalKeyBinding` are automatically appende
 
 ## Goroutine safety
 
-Key event handlers run on the **main goroutine**. Do not update UI state from a background goroutine. Instead, send to `app.NotifyChannel()` to trigger a re-render after the background work is done:
+Key event handlers run on the **main goroutine**. Do not update UI state from a background goroutine directly. Instead, use `widget.NotificationManager` — `Push`, `Pop`, and `PopAll` are goroutine-safe and the re-render channel is wired automatically by `oat.WithNotificationManager`:
 
 ```go
+notifs := widget.NewNotificationManager()
+
+app := oat.NewCanvas(
+    oat.WithTheme(latte.ThemeDark),
+    oat.WithBody(body),
+    oat.WithNotificationManager(notifs),
+)
+
 go func() {
-    result := doExpensiveWork()
-    myText.SetText(result)                 // safe: set state
-    app.NotifyChannel() <- time.Now()      // trigger re-render
+    result, err := doExpensiveWork()
+    if err != nil {
+        notifs.Push("Operation failed: "+err.Error(), widget.NotificationKindError, 4*time.Second)
+        return
+    }
+    myText.SetText(result)
+    notifs.Push("Done", widget.NotificationKindSuccess, 2*time.Second)
 }()
 ```
+
+The canvas re-renders automatically when a notification is pushed or expires — no manual channel management is required.

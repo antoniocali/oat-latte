@@ -19,8 +19,9 @@ type childSlot struct {
 // Children with flex > 0 share the remaining vertical space proportionally.
 type VBox struct {
 	oat.BaseComponent
-	slots []childSlot
-	gap   int // rows of empty space between children
+	slots  []childSlot
+	gap    int        // rows of empty space between children
+	hAlign oat.HAlign // default horizontal alignment for children (HAlignFill = fill, unchanged)
 }
 
 // NewVBox creates a VBox with optional children.
@@ -39,6 +40,18 @@ func (v *VBox) WithStyle(s latte.Style) *VBox { v.Style = s; return v }
 
 // WithGap sets the number of empty rows between children.
 func (v *VBox) WithGap(n int) *VBox { v.gap = n; return v }
+
+// WithHAlign sets the default horizontal alignment applied to every child in
+// this VBox that does not carry its own alignment preference.
+// Variadic so WithHAlign() with no argument resets to HAlignFill (full-width, unchanged).
+func (v *VBox) WithHAlign(a ...oat.HAlign) *VBox {
+	if len(a) > 0 {
+		v.hAlign = a[0]
+	} else {
+		v.hAlign = oat.HAlignFill
+	}
+	return v
+}
 
 // ApplyTheme is a no-op for VBox — it carries no semantic role in the theme.
 // The canvas tree-walk will recurse into children automatically.
@@ -147,8 +160,31 @@ func (v *VBox) Render(buf *oat.Buffer, region oat.Region) {
 				h = vf.maxSize
 			}
 		}
-		childRegion := oat.Region{X: 0, Y: y, Width: inner.Width, Height: h}
-		slot.component.Render(sub, childRegion)
+
+		// Resolve horizontal (cross-axis) alignment for this child.
+		effectiveHAlign := resolveHAlign(slot.component, v.hAlign)
+		if effectiveHAlign == oat.HAlignFill {
+			childRegion := oat.Region{X: 0, Y: y, Width: inner.Width, Height: h}
+			slot.component.Render(sub, childRegion)
+		} else {
+			desired := slot.component.Measure(oat.Constraint{MaxWidth: inner.Width, MaxHeight: h})
+			w := desired.Width
+			if w > inner.Width {
+				w = inner.Width
+			}
+			x := 0
+			switch effectiveHAlign {
+			case oat.HAlignLeft:
+				x = 0
+			case oat.HAlignCenter:
+				x = (inner.Width - w) / 2
+			case oat.HAlignRight:
+				x = inner.Width - w
+			}
+			childRegion := oat.Region{X: x, Y: y, Width: w, Height: h}
+			slot.component.Render(sub, childRegion)
+		}
+
 		y += h
 		if i < len(v.slots)-1 {
 			y += v.gap
@@ -162,8 +198,9 @@ func (v *VBox) Render(buf *oat.Buffer, region oat.Region) {
 // Children with flex > 0 share the remaining horizontal space proportionally.
 type HBox struct {
 	oat.BaseComponent
-	slots []childSlot
-	gap   int // columns of empty space between children
+	slots  []childSlot
+	gap    int        // columns of empty space between children
+	vAlign oat.VAlign // default vertical alignment for children (VAlignFill = fill, unchanged)
 }
 
 // NewHBox creates an HBox with optional children.
@@ -182,6 +219,18 @@ func (h *HBox) WithStyle(s latte.Style) *HBox { h.Style = s; return h }
 
 // WithGap sets the number of empty columns between children.
 func (h *HBox) WithGap(n int) *HBox { h.gap = n; return h }
+
+// WithVAlign sets the default vertical alignment applied to every child in
+// this HBox that does not carry its own alignment preference.
+// Variadic so WithVAlign() with no argument resets to VAlignFill (full-height, unchanged).
+func (h *HBox) WithVAlign(a ...oat.VAlign) *HBox {
+	if len(a) > 0 {
+		h.vAlign = a[0]
+	} else {
+		h.vAlign = oat.VAlignFill
+	}
+	return h
+}
 
 // ApplyTheme is a no-op for HBox — it carries no semantic role in the theme.
 // The canvas tree-walk will recurse into children automatically.
@@ -288,8 +337,31 @@ func (h *HBox) Render(buf *oat.Buffer, region oat.Region) {
 				w = hf.maxSize
 			}
 		}
-		childRegion := oat.Region{X: x, Y: 0, Width: w, Height: inner.Height}
-		slot.component.Render(sub, childRegion)
+
+		// Resolve vertical (cross-axis) alignment for this child.
+		effectiveVAlign := resolveVAlign(slot.component, h.vAlign)
+		if effectiveVAlign == oat.VAlignFill {
+			childRegion := oat.Region{X: x, Y: 0, Width: w, Height: inner.Height}
+			slot.component.Render(sub, childRegion)
+		} else {
+			desired := slot.component.Measure(oat.Constraint{MaxWidth: w, MaxHeight: inner.Height})
+			ch := desired.Height
+			if ch > inner.Height {
+				ch = inner.Height
+			}
+			cy := 0
+			switch effectiveVAlign {
+			case oat.VAlignTop:
+				cy = 0
+			case oat.VAlignMiddle:
+				cy = (inner.Height - ch) / 2
+			case oat.VAlignBottom:
+				cy = inner.Height - ch
+			}
+			childRegion := oat.Region{X: x, Y: cy, Width: w, Height: ch}
+			slot.component.Render(sub, childRegion)
+		}
+
 		x += w
 		if i < len(h.slots)-1 {
 			x += h.gap
@@ -470,9 +542,11 @@ func (s *Stack) Render(buf *oat.Buffer, region oat.Region) {
 // An optional Title is stamped into the top border line: ╭─ Title ──╮
 type Border struct {
 	oat.BaseComponent
-	child       oat.Component
-	titleStyle  latte.Style // style for the title text in the border line
-	titleAnchor oat.Anchor  // horizontal position of the title (default AnchorLeft)
+	child            oat.Component
+	titleStyle       latte.Style // style for the title text in the border line
+	titleAnchor      oat.Anchor  // horizontal position of the title (default AnchorLeft)
+	roundedCorner    bool        // effective value used at render time
+	roundedCornerSet bool        // true when caller called WithRoundedCorner explicitly
 }
 
 // NewBorder wraps child with a border using the default (single) border style.
@@ -519,39 +593,30 @@ func (b *Border) WithTitleStyle(s latte.Style) *Border {
 // WithRoundedCorner controls whether the border uses rounded corners (╭╮╰╯)
 // instead of the default square ones (┌┐└┘).
 //
-// Calling WithRoundedCorner(true) switches the border style to BorderRounded.
-// Calling WithRoundedCorner(false) on a rounded border restores BorderSingle.
-//
-// Panics if rounded is true and the current border style is BorderDouble,
-// BorderThick, or BorderDashed: Unicode provides arc corner codepoints only
-// for light-weight strokes (─ │), so they cannot connect to double (═ ║),
-// heavy (━ ┃), or dashed (╌ ╎) lines without producing a broken visual.
-// Use WithStyle(latte.Style{Border: latte.BorderRounded}) to switch style
-// entirely, or keep the incompatible border style without rounded corners.
+// Once called, this explicit choice overrides the theme's RoundedCorner
+// setting for this Border. If the border's resolved style is incompatible
+// with arc corners (BorderDouble, BorderThick, BorderDashed) the setting is
+// stored but silently ignored at render time — no panic is raised.
+// Arc corner codepoints exist only for light-weight strokes (─ │).
 func (b *Border) WithRoundedCorner(rounded bool) *Border {
-	if rounded {
-		switch b.Style.Border {
-		case latte.BorderDouble:
-			panic("oat-latte: WithRoundedCorner(true) is not supported for BorderDouble — " +
-				"Unicode has no double-stroke arc corners (╔╗╚╝ cannot be rounded)")
-		case latte.BorderThick:
-			panic("oat-latte: WithRoundedCorner(true) is not supported for BorderThick — " +
-				"Unicode has no heavy-stroke arc corners (┏┓┗┛ cannot be rounded)")
-		case latte.BorderDashed:
-			panic("oat-latte: WithRoundedCorner(true) is not supported for BorderDashed — " +
-				"arc corners (╭╮╰╯) do not connect to dashed strokes (╌ ╎)")
-		}
-		b.Style.Border = latte.BorderRounded
-	} else if b.Style.Border == latte.BorderRounded {
-		b.Style.Border = latte.BorderSingle
-	}
+	b.roundedCorner = rounded
+	b.roundedCornerSet = true
 	return b
 }
 
 // ApplyTheme applies Panel and PanelTitle tokens from the theme to this Border.
 // The FocusBorder colour is stored in FocusStyle.BorderFG so the focus-aware
 // Render logic picks it up automatically.
+// If the caller has not called WithRoundedCorner explicitly, the theme's
+// RoundedCorner field drives the effective rounded-corner behaviour (both
+// enabling and disabling it on theme switch).
 func (b *Border) ApplyTheme(t latte.Theme) {
+	// Sync rounded-corner preference from the theme whenever the caller has
+	// not pinned it with an explicit WithRoundedCorner call.
+	if !b.roundedCornerSet {
+		b.roundedCorner = t.RoundedCorner
+	}
+
 	// Preserve the border shape if the caller set it explicitly, but apply
 	// colours from the theme.
 	if b.Style.Border != latte.BorderNone {
@@ -592,6 +657,19 @@ func (b *Border) Measure(c oat.Constraint) oat.Size {
 // the focused border colour (cyan) so the user always knows which panel is active.
 func (b *Border) Render(buf *oat.Buffer, region oat.Region) {
 	style := b.Style
+	// Resolve effective border shape: upgrade Single→Rounded when roundedCorner
+	// is true, downgrade Rounded→Single when false.  Incompatible styles
+	// (Double, Thick, Dashed) are left untouched in both directions.
+	switch style.Border {
+	case latte.BorderSingle:
+		if b.roundedCorner {
+			style.Border = latte.BorderRounded
+		}
+	case latte.BorderRounded:
+		if !b.roundedCorner {
+			style.Border = latte.BorderSingle
+		}
+	}
 	if b.child != nil && containsFocus(b.child) {
 		// Override the border colour to the focus highlight colour.
 		// If a custom FocusStyle was set on the Border itself, use its BorderFG;
@@ -668,8 +746,9 @@ func (p *Padding) Render(buf *oat.Buffer, region oat.Region) {
 		return
 	}
 	innerRegion := region.Inner(p.insets)
-	sub := buf.Sub(region)
-	p.child.Render(sub, innerRegion)
+	sub := buf.Sub(innerRegion)
+	childRegion := oat.Region{Width: innerRegion.Width, Height: innerRegion.Height}
+	p.child.Render(sub, childRegion)
 }
 
 // ---- helpers --------------------------------------------------------------
@@ -875,4 +954,121 @@ func (f *FlexChild) Render(buf *oat.Buffer, region oat.Region) {
 		return
 	}
 	f.child.Render(buf, region)
+}
+
+// ---- AlignChild -----------------------------------------------------------
+
+// AlignChild wraps a single component with explicit cross-axis alignment
+// overrides. It is the per-child counterpart to VBox.WithHAlign / HBox.WithVAlign:
+//
+//   - In a VBox, AlignChild.hAlign overrides the box's default HAlign.
+//   - In an HBox, AlignChild.vAlign overrides the box's default VAlign.
+//
+// AlignChild is NOT a FlexSpacer — it does not claim flex space on its own.
+// Use AddFlexChild to make the wrapper participate in flex distribution:
+//
+//	vbox.AddFlexChild(layout.NewAlignChild(btn, oat.HAlignRight, oat.VAlignFill), 1)
+//
+// AlignChild implements oat.Layout so theme propagation and focus collection
+// recurse into the wrapped component automatically.
+type AlignChild struct {
+	oat.BaseComponent
+	child  oat.Component
+	hAlign oat.HAlign
+	vAlign oat.VAlign
+}
+
+// NewAlignChild wraps child with the given horizontal and vertical alignment.
+// The alignment values control how the child is positioned within the
+// cross-axis slot allocated by its parent box.
+func NewAlignChild(child oat.Component, h oat.HAlign, v oat.VAlign) *AlignChild {
+	return &AlignChild{child: child, hAlign: h, vAlign: v}
+}
+
+// GetHAlign satisfies oat.AlignProvider.
+func (a *AlignChild) GetHAlign() oat.HAlign { return a.hAlign }
+
+// GetVAlign satisfies oat.AlignProvider.
+func (a *AlignChild) GetVAlign() oat.VAlign { return a.vAlign }
+
+// AddChild sets the inner component (satisfies oat.Layout).
+func (a *AlignChild) AddChild(c oat.Component) { a.child = c }
+
+// Children satisfies oat.Layout so theme propagation and focus collection
+// recurse into the inner component.
+func (a *AlignChild) Children() []oat.Component {
+	if a.child == nil {
+		return nil
+	}
+	return []oat.Component{a.child}
+}
+
+// Measure delegates to the inner component.
+func (a *AlignChild) Measure(c oat.Constraint) oat.Size {
+	if a.child == nil {
+		return oat.Size{}
+	}
+	return a.child.Measure(c)
+}
+
+// Render delegates to the inner component using the full allocated region.
+func (a *AlignChild) Render(buf *oat.Buffer, region oat.Region) {
+	if a.child == nil {
+		return
+	}
+	a.child.Render(buf, region)
+}
+
+// ---- alignment resolution helpers ----------------------------------------
+
+// resolveHAlign returns the effective HAlign for a child component.
+// Resolution order:
+//  1. AlignChild wrapper — highest priority
+//  2. AlignProvider on the child itself (e.g. BaseComponent.HAlign)
+//  3. The parent box's boxDefault
+//  4. HAlignFill (unchanged behaviour)
+//
+// If c is a FlexChild, resolution is performed on the inner child instead —
+// FlexChild is a transparent flex-weight carrier and carries no alignment
+// preference of its own.
+func resolveHAlign(c oat.Component, boxDefault oat.HAlign) oat.HAlign {
+	// Unwrap FlexChild — it is a transparent flex-weight carrier.
+	if fc, ok := c.(*FlexChild); ok && fc.child != nil {
+		c = fc.child
+	}
+	if ac, ok := c.(*AlignChild); ok {
+		return ac.GetHAlign()
+	}
+	if ap, ok := c.(oat.AlignProvider); ok {
+		if a := ap.GetHAlign(); a != oat.HAlignFill {
+			return a
+		}
+	}
+	return boxDefault
+}
+
+// resolveVAlign returns the effective VAlign for a child component.
+// Resolution order:
+//  1. AlignChild wrapper — highest priority
+//  2. AlignProvider on the child itself (e.g. BaseComponent.VAlign)
+//  3. The parent box's boxDefault
+//  4. VAlignFill (unchanged behaviour)
+//
+// If c is a FlexChild, resolution is performed on the inner child instead —
+// FlexChild is a transparent flex-weight carrier and carries no alignment
+// preference of its own.
+func resolveVAlign(c oat.Component, boxDefault oat.VAlign) oat.VAlign {
+	// Unwrap FlexChild — it is a transparent flex-weight carrier.
+	if fc, ok := c.(*FlexChild); ok && fc.child != nil {
+		c = fc.child
+	}
+	if ac, ok := c.(*AlignChild); ok {
+		return ac.GetVAlign()
+	}
+	if ap, ok := c.(oat.AlignProvider); ok {
+		if a := ap.GetVAlign(); a != oat.VAlignFill {
+			return a
+		}
+	}
+	return boxDefault
 }

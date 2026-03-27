@@ -45,6 +45,26 @@ func (t *Text) WithWordWrap(enabled bool) *Text { t.wordWrap = enabled; return t
 // WithScrollable makes the text vertically scrollable.
 func (t *Text) WithScrollable(enabled bool) *Text { t.scrollable = enabled; return t }
 
+// WithHAlign sets the horizontal alignment for this widget within a VBox slot.
+// No argument (or HAlignFill) resets to the default fill behaviour.
+func (t *Text) WithHAlign(a ...oat.HAlign) *Text {
+	t.BaseComponent.HAlign = oat.HAlignFill
+	if len(a) > 0 {
+		t.BaseComponent.HAlign = a[0]
+	}
+	return t
+}
+
+// WithVAlign sets the vertical alignment for this widget within an HBox slot.
+// No argument (or VAlignFill) resets to the default fill behaviour.
+func (t *Text) WithVAlign(a ...oat.VAlign) *Text {
+	t.BaseComponent.VAlign = oat.VAlignFill
+	if len(a) > 0 {
+		t.BaseComponent.VAlign = a[0]
+	}
+	return t
+}
+
 // SetText updates the displayed text.
 func (t *Text) SetText(text string) { t.text = text; t.lines = nil }
 
@@ -212,8 +232,9 @@ func wrapLine(line string, width int) []string {
 // Title renders a styled heading, optionally with a separator line below it.
 type Title struct {
 	oat.BaseComponent
-	text      string
-	separator bool
+	text        string
+	separator   bool
+	callerStyle latte.Style // style set by the caller before any theme application
 }
 
 // NewTitle creates a Title widget.
@@ -231,15 +252,40 @@ func (t *Title) WithID(id string) *Title { t.ID = id; return t }
 func (t *Title) GetValue() interface{} { return t.text }
 
 // WithStyle overrides the default title style.
-func (t *Title) WithStyle(s latte.Style) *Title { t.Style = s; return t }
+func (t *Title) WithStyle(s latte.Style) *Title { t.Style = s; t.callerStyle = s; return t }
 
 // ApplyTheme applies the Accent semantic token to the Title.
+// The theme acts as the base; any style fields explicitly set by the caller
+// (via WithStyle) take precedence via Merge.
+// ApplyTheme always re-derives Style from the theme token merged with the
+// original callerStyle so that switching themes fully replaces the previous
+// theme's colours rather than accumulating stale values.
 func (t *Title) ApplyTheme(th latte.Theme) {
-	t.Style = th.Accent
+	t.Style = th.Accent.Merge(t.callerStyle)
 }
 
 // WithSeparator controls whether a line is drawn below the title text.
 func (t *Title) WithSeparator(enabled bool) *Title { t.separator = enabled; return t }
+
+// WithHAlign sets the horizontal alignment for this widget within a VBox slot.
+// No argument (or HAlignFill) resets to the default fill behaviour.
+func (t *Title) WithHAlign(a ...oat.HAlign) *Title {
+	t.BaseComponent.HAlign = oat.HAlignFill
+	if len(a) > 0 {
+		t.BaseComponent.HAlign = a[0]
+	}
+	return t
+}
+
+// WithVAlign sets the vertical alignment for this widget within an HBox slot.
+// No argument (or VAlignFill) resets to the default fill behaviour.
+func (t *Title) WithVAlign(a ...oat.VAlign) *Title {
+	t.BaseComponent.VAlign = oat.VAlignFill
+	if len(a) > 0 {
+		t.BaseComponent.VAlign = a[0]
+	}
+	return t
+}
 
 // Measure returns the size: width = text length, height = 1 (+ 1 for separator).
 func (t *Title) Measure(c oat.Constraint) oat.Size {
