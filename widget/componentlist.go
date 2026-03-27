@@ -67,6 +67,10 @@ type ComponentList struct {
 	// previous theme's colours rather than leaving stale values stuck in Style.
 	callerStyle         latte.Style
 	callerSelectedStyle latte.Style
+
+	// accentColor is derived from the theme's Accent token in ApplyTheme and
+	// used to colour the cursor glyph when the list is focused.
+	accentColor latte.Color
 }
 
 // NewComponentList creates a ComponentList with the given items.
@@ -322,7 +326,11 @@ func (l *ComponentList) Render(buf *oat.Buffer, region oat.Region) {
 	}
 
 	// Cursor styles: accent when focused, dimmed when not.
-	cursorStyle := latte.Style{FG: latte.ColorBrightCyan, Bold: true}
+	cursorFG := l.accentColor
+	if cursorFG == latte.ColorDefault {
+		cursorFG = latte.ColorBrightCyan // safe fallback for ThemeDefault (ANSI-16)
+	}
+	cursorStyle := latte.Style{FG: cursorFG, Bold: true}
 	if !l.IsFocused() {
 		cursorStyle = latte.Style{FG: latte.ColorBrightBlack}
 	}
@@ -430,6 +438,7 @@ func (l *ComponentList) ApplyTheme(t latte.Theme) {
 	l.Style = t.Text.Merge(l.callerStyle)
 	l.FocusStyle = latte.Style{BorderFG: t.FocusBorder}
 	l.selectedStyle = t.ListSelected.Merge(l.callerSelectedStyle)
+	l.accentColor = t.Accent.FG
 }
 
 func (l *ComponentList) HandleKey(ev *oat.KeyEvent) bool {

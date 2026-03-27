@@ -14,7 +14,8 @@ import (
 // description is shown in muted style. Bindings are separated by a dim │.
 type StatusBar struct {
 	oat.BaseComponent
-	bindings []oat.KeyBinding
+	bindings    []oat.KeyBinding
+	accentColor latte.Color // derived from theme Accent token in ApplyTheme
 }
 
 // NewStatusBar creates a StatusBar.
@@ -38,6 +39,7 @@ func (s *StatusBar) SetBindings(bindings []oat.KeyBinding) {
 // ApplyTheme applies theme tokens to the StatusBar.
 func (s *StatusBar) ApplyTheme(t latte.Theme) {
 	s.Style = t.Footer
+	s.accentColor = t.Accent.FG
 }
 
 func (s *StatusBar) Measure(c oat.Constraint) oat.Size {
@@ -59,8 +61,12 @@ func (s *StatusBar) Render(buf *oat.Buffer, region oat.Region) {
 
 	// Derive accent and separator styles from the base footer style.
 	// We keep the background from the footer style so colours stay consistent.
+	accentFG := s.accentColor
+	if accentFG == latte.ColorDefault {
+		accentFG = latte.ColorBrightCyan // safe fallback for ThemeDefault (ANSI-16)
+	}
 	keyStyle := latte.Style{
-		FG:   latte.ColorBrightCyan,
+		FG:   accentFG,
 		BG:   s.Style.BG,
 		Bold: true,
 	}
