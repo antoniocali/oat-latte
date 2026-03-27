@@ -9,11 +9,19 @@ import (
 // bounds-checked, clipped cell writes. It also handles the
 // conversion from latte.Style to tcell.Style.
 //
+// Buffer tracks the most recently filled background colour (bg). Any component
+// that draws with BG == ColorDefault inherits this colour instead of falling
+// through to the terminal's own default (typically black). This gives the
+// framework "virtual transparency": a child widget whose style has no explicit
+// background will always appear on top of whatever background the parent
+// painted, regardless of the terminal default.
+//
 // All rendering in oat-latte goes through a Buffer — no component
 // ever writes directly to tcell.Screen.
 type Buffer struct {
 	screen tcell.Screen
-	clip   Region // current clipping region
+	clip   Region      // current clipping region
+	bg     latte.Color // inherited background colour; ColorDefault until a fill is done
 }
 
 // newBuffer creates a Buffer wrapping the given tcell.Screen.
@@ -28,6 +36,8 @@ func newBuffer(screen tcell.Screen) *Buffer {
 
 // Sub returns a new Buffer whose clipping region is restricted to region.
 // Coordinates passed to the sub-buffer are relative to region's origin.
+// The parent's current background colour is inherited so children that render
+// with BG == ColorDefault appear on top of the parent's background.
 func (b *Buffer) Sub(region Region) *Buffer {
 	// Convert region to absolute screen coordinates, clipped to parent.
 	absX := b.clip.X + region.X
@@ -52,7 +62,30 @@ func (b *Buffer) Sub(region Region) *Buffer {
 	return &Buffer{
 		screen: b.screen,
 		clip:   Region{X: absX, Y: absY, Width: w, Height: h},
+		bg:     b.bg, // inherit parent background
 	}
+}
+
+// resolveStyle substitutes the buffer's inherited background colour into style
+// when style.BG is ColorDefault. This prevents children that carry no explicit
+// BG from falling through to the terminal's default (typically black) and
+// overwriting the background the parent already painted.
+func (b *Buffer) resolveStyle(style latte.Style) latte.Style {
+	if style.BG == latte.ColorDefault && b.bg != latte.ColorDefault {
+		style.BG = b.bg
+	}
+	return style
+}
+
+// resolveBorderStyle returns a style where BorderBG is filled in from the
+// buffer's inherited background when it is ColorDefault. Used so border runes
+// are drawn on the same background as the rest of the panel, not the terminal
+// default.
+func (b *Buffer) resolveBorderStyle(style latte.Style) latte.Style {
+	if style.BorderBG == latte.ColorDefault && b.bg != latte.ColorDefault {
+		style.BorderBG = b.bg
+	}
+	return style
 }
 
 // SetCell writes a single rune at (x, y) relative to the buffer's clip origin.
@@ -66,7 +99,7 @@ func (b *Buffer) SetCell(x, y int, ch rune, style latte.Style) {
 	if ay < b.clip.Y || ay >= b.clip.Y+b.clip.Height {
 		return
 	}
-	b.screen.SetContent(ax, ay, ch, nil, style.ToTcell())
+	b.screen.SetContent(ax, ay, ch, nil, b.resolveStyle(style).ToTcell())
 }
 
 // SetCellTcell writes a cell using a raw tcell.Style (used internally for borders).
@@ -83,8 +116,14 @@ func (b *Buffer) SetCellTcell(x, y int, ch rune, style tcell.Style) {
 }
 
 // Fill fills the entire buffer region with the given rune and style.
+// If style.BG is a concrete colour it is recorded as the buffer's current
+// background so that subsequent children that draw with BG == ColorDefault
+// inherit it rather than falling through to the terminal default.
 func (b *Buffer) Fill(ch rune, style latte.Style) {
-	ts := style.ToTcell()
+	if style.BG != latte.ColorDefault {
+		b.bg = style.BG
+	}
+	ts := b.resolveStyle(style).ToTcell()
 	for y := 0; y < b.clip.Height; y++ {
 		for x := 0; x < b.clip.Width; x++ {
 			b.screen.SetContent(b.clip.X+x, b.clip.Y+y, ch, nil, ts)
@@ -109,7 +148,7 @@ func (b *Buffer) Region() Region { return b.clip }
 // DrawText writes a string starting at (x, y), clipped to the buffer bounds.
 // Returns the x position after the last character written.
 func (b *Buffer) DrawText(x, y int, text string, style latte.Style) int {
-	ts := style.ToTcell()
+	ts := b.resolveStyle(style).ToTcell()
 	cx := x
 	for _, ch := range text {
 		if cx >= b.clip.Width {
@@ -139,7 +178,7 @@ func (b *Buffer) DrawTextAligned(x, y, width int, text string, align latte.Align
 		startX = x + width - textLen
 	}
 
-	ts := style.ToTcell()
+	ts := b.resolveStyle(style).ToTcell()
 	for i, ch := range runes {
 		cx := startX + i
 		if cx < x || cx >= x+width || cx >= b.clip.Width {
@@ -168,7 +207,7 @@ func (b *Buffer) DrawBorderTitle(borderStyle latte.BorderStyle, title string, ti
 		return
 	}
 	runes := borderStyle.Runes()
-	bs := style.BorderTcell()
+	bs := b.resolveBorderStyle(style).BorderTcell()
 
 	w := b.clip.Width
 	h := b.clip.Height
@@ -204,7 +243,7 @@ func (b *Buffer) DrawBorderTitle(borderStyle latte.BorderStyle, title string, ti
 		labelRunes = labelRunes[:maxLen]
 	}
 
-	ts := titleStyle.ToTcell()
+	ts := b.resolveStyle(titleStyle).ToTcell()
 	// If the caller didn't set a title FG, inherit the border FG.
 	if titleStyle.FG == latte.ColorDefault && titleStyle.BG == latte.ColorDefault &&
 		!titleStyle.Bold && !titleStyle.Italic {

@@ -297,9 +297,11 @@ var (
 var (
 	LightBg         = RGB(248, 245, 240) // #f8f5f0 — canvas / body background
 	LightBgElevated = RGB(238, 235, 229) // #eeebe5 — dialog / elevated surface
-	LightBgScrim    = RGB(224, 220, 215) // #e0dcd7 — full-screen scrim
+	LightBgSelected = RGB(219, 228, 253) // #dbe4fd — list row selection highlight (light cobalt tint)
+	LightBgHeader   = RGB(232, 229, 224) // #e8e5e0 — header / footer surface (slightly darker than canvas)
+	LightBgScrim    = RGB(180, 175, 168) // #b4afa8 — full-screen scrim (darkened for visible dimming)
 	LightBorder     = RGB(200, 196, 190) // #c8c4be — panel border (inactive)
-	LightMuted      = RGB(142, 142, 154) // #8e8e9a — muted / secondary text
+	LightMuted      = RGB(110, 110, 125) // #6e6e7d — muted / secondary text (darkened for WCAG AA contrast)
 	LightText       = RGB(26, 26, 46)    // #1a1a2e — primary text
 	LightAccent     = RGB(67, 97, 238)   // #4361ee — cobalt accent
 	LightSuccess    = RGB(45, 106, 79)   // #2d6a4f — forest green

@@ -82,6 +82,15 @@ func (w *MyWidget) Render(buf *oat.Buffer, region oat.Region) {
 }
 ```
 
+#### Background inheritance
+
+`Buffer` tracks the most recently filled background colour (`bg`). When the canvas pre-fills the screen with the theme's `Canvas.BG`, that colour is recorded in the root buffer. `Sub` propagates it to every child buffer, so any component that draws with `BG == ColorDefault` automatically inherits the canvas background instead of falling through to the terminal default (typically black).
+
+This means:
+- **Custom widgets do not need to paint a background** unless they want a specific colour that differs from the canvas. Simply calling `sub.DrawText(...)` with a style that has no `BG` will look correct on any theme.
+- **`FillBG(w.Style)` is still correct** and recommended when you want to explicitly paint the widget's own background (e.g. a selected row, a focused input field). If `w.Style.BG` is `ColorDefault`, `FillBG` inherits the canvas colour automatically — it will not produce a black rectangle.
+- `Sub` inherits `bg` from its parent, so the entire subtree always knows the correct background without any extra wiring.
+
 ---
 
 ## Building a custom widget

@@ -25,6 +25,7 @@ const sidebars: SidebarsConfig = {
                 'widgets/button',
                 'widgets/edittext',
                 'widgets/list',
+                'widgets/componentlist',
                 'widgets/checkbox',
                 'widgets/label',
                 'widgets/progressbar',

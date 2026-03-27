@@ -304,7 +304,7 @@ var ThemeDark = Theme{
 	Warning: Style{FG: DarkWarning, BG: DarkBg},
 	Error:   Style{FG: DarkError, BG: DarkBg},
 
-	Panel:      Style{Border: BorderRounded, BorderFG: DarkBorder},
+	Panel:      Style{Border: BorderRounded, BorderFG: DarkBorder, BG: DarkBg},
 	PanelTitle: Style{FG: DarkAccent, Bold: true},
 
 	Input:      Style{Border: BorderSingle, BorderFG: DarkMuted, FG: ColorBrightWhite},
@@ -347,20 +347,20 @@ var ThemeLight = Theme{
 	Warning: Style{FG: LightWarning, BG: LightBg},
 	Error:   Style{FG: LightError, BG: LightBg},
 
-	Panel:      Style{Border: BorderRounded, BorderFG: LightBorder},
+	Panel:      Style{Border: BorderRounded, BorderFG: LightBorder, BG: LightBg},
 	PanelTitle: Style{FG: LightAccent, Bold: true},
 
 	Input:      Style{Border: BorderSingle, BorderFG: LightBorder, FG: LightText},
 	InputFocus: Style{BorderFG: LightAccent},
 
-	ListSelected:  Style{FG: LightAccent, Bold: true},
+	ListSelected:  Style{FG: LightAccent, BG: LightBgSelected, Bold: true},
 	Button:        Style{FG: LightText, Border: BorderSingle, BorderFG: LightBorder},
 	ButtonFocus:   Style{Reverse: true, BorderFG: LightAccent},
 	CheckBox:      Style{FG: LightSuccess},
 	CheckBoxFocus: Style{Reverse: true, Border: BorderSingle, BorderFG: LightAccent},
 
-	Header: Style{FG: LightAccent, BG: LightBg, Bold: true},
-	Footer: Style{FG: LightMuted, BG: LightBg},
+	Header: Style{FG: LightAccent, BG: LightBgHeader, Bold: true},
+	Footer: Style{FG: LightMuted, BG: LightBgHeader},
 
 	FocusBorder: LightAccent,
 
@@ -391,7 +391,7 @@ var ThemeDracula = Theme{
 	Warning: Style{FG: DraculaOrange, BG: DraculaBg},
 	Error:   Style{FG: DraculaRed, BG: DraculaBg},
 
-	Panel:      Style{Border: BorderRounded, BorderFG: DraculaSelection},
+	Panel:      Style{Border: BorderRounded, BorderFG: DraculaSelection, BG: DraculaBg},
 	PanelTitle: Style{FG: DraculaPurple, Bold: true},
 
 	Input:      Style{Border: BorderSingle, BorderFG: DraculaComment, FG: DraculaFg},
@@ -435,7 +435,7 @@ var ThemeNord = Theme{
 	Warning: Style{FG: Nord13, BG: Nord0},
 	Error:   Style{FG: Nord11, BG: Nord0},
 
-	Panel:      Style{Border: BorderRounded, BorderFG: Nord1},
+	Panel:      Style{Border: BorderRounded, BorderFG: Nord1, BG: Nord0},
 	PanelTitle: Style{FG: Nord8, Bold: true},
 
 	Input:      Style{Border: BorderSingle, BorderFG: Nord3, FG: Nord6},

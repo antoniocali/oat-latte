@@ -56,7 +56,7 @@ Named constants extracted directly from the four true-color built-in themes, gro
 | Family | Example constants |
 |---|---|
 | `Dark*` | `DarkBg`, `DarkAccent`, `DarkMuted`, `DarkSuccess`, `DarkWarning`, `DarkError`, `DarkBgElevated`, `DarkBgScrim`, `DarkBorder` |
-| `Light*` | `LightBg`, `LightAccent`, `LightText`, `LightMuted`, `LightSuccess`, `LightWarning`, `LightError`, `LightBgElevated`, `LightBgScrim`, `LightBorder` |
+| `Light*` | `LightBg`, `LightBgElevated`, `LightBgSelected`, `LightBgHeader`, `LightBgScrim`, `LightBorder`, `LightMuted`, `LightText`, `LightAccent`, `LightSuccess`, `LightWarning`, `LightError` |
 | `Dracula*` | `DraculaBg`, `DraculaPurple`, `DraculaCyan`, `DraculaGreen`, `DraculaFg`, `DraculaComment`, `DraculaSelection`, `DraculaOrange`, `DraculaRed`, `DraculaYellow`, `DraculaPink` |
 | `Nord0`–`Nord15` | `NordBg`, `NordBgElevated`, `NordBgScrim` |
 
@@ -155,6 +155,7 @@ app := oat.NewCanvas(
     oat.WithBody(body),
     oat.WithGlobalKeyBinding(oat.KeyBinding{
         Key:         tcell.KeyCtrlT,
+        Mod:         tcell.ModCtrl,
         Label:       "^T",
         Description: "Toggle theme",
         Handler: func() {

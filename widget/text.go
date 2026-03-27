@@ -14,12 +14,13 @@ import (
 // Text renders a static string. Supports optional word-wrap and scrolling.
 type Text struct {
 	oat.BaseComponent
-	text       string
-	wordWrap   bool
-	scrollable bool
-	scrollOff  int      // scroll offset in lines
-	lines      []string // cached wrapped lines
-	lastWidth  int
+	text        string
+	wordWrap    bool
+	scrollable  bool
+	scrollOff   int      // scroll offset in lines
+	lines       []string // cached wrapped lines
+	lastWidth   int
+	callerStyle latte.Style // style set by the caller before any theme application
 }
 
 // NewText creates a Text widget with the given content.
@@ -30,7 +31,7 @@ func NewText(text string) *Text {
 }
 
 // WithStyle sets the display style for this Text widget.
-func (t *Text) WithStyle(s latte.Style) *Text { t.Style = s; return t }
+func (t *Text) WithStyle(s latte.Style) *Text { t.Style = s; t.callerStyle = s; return t }
 
 // WithID sets a user-defined identifier on this component.
 func (t *Text) WithID(id string) *Text { t.ID = id; return t }
@@ -51,10 +52,26 @@ func (t *Text) SetText(text string) { t.text = text; t.lines = nil }
 func (t *Text) GetText() string { return t.text }
 
 // ApplyTheme applies the Text semantic token from the theme.
-// The theme acts as the base; any style fields already set on the widget
-// (via WithStyle) take precedence via Merge.
+// The theme acts as the base; any style fields explicitly set by the caller
+// (via WithStyle before the first theme application) take precedence via Merge.
+//
+// Note: BG is intentionally excluded from the inherited theme token so that
+// Text widgets composited inside containers (e.g. ComponentList rows, HBox
+// cells) inherit the parent's background — which may be a highlight colour —
+// rather than overwriting it with the canvas background. Callers that need
+// an explicit background on a standalone Text widget can set it via WithStyle.
+//
+// ApplyTheme always re-derives Style from the theme token merged with the
+// original callerStyle so that repeated calls (e.g. on theme switch) correctly
+// replace the previous theme's colours rather than accumulating stale values.
 func (t *Text) ApplyTheme(th latte.Theme) {
-	t.Style = th.Text.Merge(t.Style)
+	// Strip BG from the theme token so Text is transparent inside containers.
+	themeText := th.Text
+	themeText.BG = latte.ColorDefault
+	// Always start from the theme token and merge the caller's original style on
+	// top. Using callerStyle (not the current Style) prevents stale values from
+	// a previous theme from permanently overriding the new theme's colours.
+	t.Style = themeText.Merge(t.callerStyle)
 }
 
 // --- oat.Scrollable --------------------------------------------------------
@@ -102,7 +119,15 @@ func (t *Text) Measure(c oat.Constraint) oat.Size {
 // Render draws the text lines into the buffer.
 func (t *Text) Render(buf *oat.Buffer, region oat.Region) {
 	pad := toOatInsets(t.Style.Padding)
-	inner := region.Inner(pad)
+	// inner dimensions relative to the sub-buffer's origin (not the parent buffer).
+	innerW := region.Width - pad.Horizontal()
+	innerH := region.Height - pad.Vertical()
+	if innerW < 0 {
+		innerW = 0
+	}
+	if innerH < 0 {
+		innerH = 0
+	}
 	sub := buf.Sub(region)
 
 	// Draw border if specified.
@@ -110,22 +135,27 @@ func (t *Text) Render(buf *oat.Buffer, region oat.Region) {
 		sub.DrawBorderTitle(t.Style.Border, t.Title, latte.Style{}, t.Style, oat.AnchorLeft)
 	}
 
-	sub.FillBG(t.Style)
+	// Only fill the background when an explicit BG colour has been set.
+	// When BG is ColorDefault the parent container (Border, ComponentList, etc.)
+	// has already painted the correct background and we must not overwrite it.
+	if t.Style.BG != latte.ColorDefault {
+		sub.FillBG(t.Style)
+	}
 
-	lines := t.wrappedLines(inner.Width)
-	t.lastWidth = inner.Width
+	lines := t.wrappedLines(innerW)
+	t.lastWidth = innerW
 
 	start := 0
 	if t.scrollable {
 		start = t.scrollOff
 	}
 
-	for y := 0; y < inner.Height; y++ {
+	for y := 0; y < innerH; y++ {
 		lineIdx := start + y
 		if lineIdx >= len(lines) {
 			break
 		}
-		sub.DrawTextAligned(inner.X, inner.Y+y, inner.Width, lines[lineIdx], t.Style.TextAlign, t.Style)
+		sub.DrawTextAligned(pad.Left, pad.Top+y, innerW, lines[lineIdx], t.Style.TextAlign, t.Style)
 	}
 }
 

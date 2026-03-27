@@ -24,10 +24,12 @@ type VBox struct {
 }
 
 // NewVBox creates a VBox with optional children.
+// Children that implement FlexSpacer (e.g. VFill, FlexChild) are automatically
+// promoted to flex slots, matching the behaviour of AddChild.
 func NewVBox(children ...oat.Component) *VBox {
 	v := &VBox{}
 	for _, c := range children {
-		v.slots = append(v.slots, childSlot{component: c, flex: 0})
+		v.AddChild(c)
 	}
 	return v
 }
@@ -165,10 +167,12 @@ type HBox struct {
 }
 
 // NewHBox creates an HBox with optional children.
+// Children that implement FlexSpacer (e.g. HFill, FlexChild) are automatically
+// promoted to flex slots, matching the behaviour of AddChild.
 func NewHBox(children ...oat.Component) *HBox {
 	h := &HBox{}
 	for _, c := range children {
-		h.slots = append(h.slots, childSlot{component: c, flex: 0})
+		h.AddChild(c)
 	}
 	return h
 }
