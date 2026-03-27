@@ -53,8 +53,18 @@ func (t *Text) GetText() string { return t.text }
 // ApplyTheme applies the Text semantic token from the theme.
 // The theme acts as the base; any style fields already set on the widget
 // (via WithStyle) take precedence via Merge.
+//
+// Note: only foreground attributes (FG, Bold, Italic, etc.) are inherited from
+// the theme's Text token. BG is intentionally excluded so that Text widgets
+// composited inside containers (e.g. ComponentList rows, HBox cells) inherit
+// the parent's background — which may be a highlight colour — rather than
+// overwriting it with the canvas background. Callers that need an explicit
+// background on a standalone Text widget can set it via WithStyle.
 func (t *Text) ApplyTheme(th latte.Theme) {
-	t.Style = th.Text.Merge(t.Style)
+	// Strip BG from the theme token before merging so Text stays transparent.
+	themeText := th.Text
+	themeText.BG = latte.ColorDefault
+	t.Style = themeText.Merge(t.Style)
 }
 
 // --- oat.Scrollable --------------------------------------------------------
@@ -118,7 +128,12 @@ func (t *Text) Render(buf *oat.Buffer, region oat.Region) {
 		sub.DrawBorderTitle(t.Style.Border, t.Title, latte.Style{}, t.Style, oat.AnchorLeft)
 	}
 
-	sub.FillBG(t.Style)
+	// Only fill the background when an explicit BG colour has been set.
+	// When BG is ColorDefault the parent container (Border, ComponentList, etc.)
+	// has already painted the correct background and we must not overwrite it.
+	if t.Style.BG != latte.ColorDefault {
+		sub.FillBG(t.Style)
+	}
 
 	lines := t.wrappedLines(innerW)
 	t.lastWidth = innerW
