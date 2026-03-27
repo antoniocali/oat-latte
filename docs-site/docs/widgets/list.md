@@ -109,3 +109,7 @@ body.AddFlexChild(layout.NewBorder(detail).WithTitle("Detail"), 3)
 | `Enter` | Fire `onSelect` callback |
 | `Delete` | Fire `onDelete` callback (only advertised when set) |
 | `Tab` / `Shift+Tab` | Move focus to next / previous widget |
+
+## See also
+
+When rows need to contain more than a plain label — multiple columns, mixed widgets, or variable-height content — use [`ComponentList`](./componentlist.md) instead. It shares the same API and key bindings but renders an arbitrary `Component` per row.

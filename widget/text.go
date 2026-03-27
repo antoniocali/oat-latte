@@ -102,7 +102,15 @@ func (t *Text) Measure(c oat.Constraint) oat.Size {
 // Render draws the text lines into the buffer.
 func (t *Text) Render(buf *oat.Buffer, region oat.Region) {
 	pad := toOatInsets(t.Style.Padding)
-	inner := region.Inner(pad)
+	// inner dimensions relative to the sub-buffer's origin (not the parent buffer).
+	innerW := region.Width - pad.Horizontal()
+	innerH := region.Height - pad.Vertical()
+	if innerW < 0 {
+		innerW = 0
+	}
+	if innerH < 0 {
+		innerH = 0
+	}
 	sub := buf.Sub(region)
 
 	// Draw border if specified.
@@ -112,20 +120,20 @@ func (t *Text) Render(buf *oat.Buffer, region oat.Region) {
 
 	sub.FillBG(t.Style)
 
-	lines := t.wrappedLines(inner.Width)
-	t.lastWidth = inner.Width
+	lines := t.wrappedLines(innerW)
+	t.lastWidth = innerW
 
 	start := 0
 	if t.scrollable {
 		start = t.scrollOff
 	}
 
-	for y := 0; y < inner.Height; y++ {
+	for y := 0; y < innerH; y++ {
 		lineIdx := start + y
 		if lineIdx >= len(lines) {
 			break
 		}
-		sub.DrawTextAligned(inner.X, inner.Y+y, inner.Width, lines[lineIdx], t.Style.TextAlign, t.Style)
+		sub.DrawTextAligned(pad.Left, pad.Top+y, innerW, lines[lineIdx], t.Style.TextAlign, t.Style)
 	}
 }
 

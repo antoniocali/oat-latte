@@ -8,6 +8,47 @@ All notable changes to the oat-latte framework are listed here, newest first.
 
 ---
 
+## v0.2.6
+
+**`widget.ComponentList` — component-row list**
+
+### Added
+
+- `widget.ComponentList` — a vertically scrollable, keyboard-navigable list whose rows are arbitrary `Component` values instead of plain label strings. This allows each row to contain rich layouts such as `HBox(Text, Flex(Text), Text)`.
+
+  - `widget.ComponentListItem{Component oat.Component, Value interface{}}` — the item type. `Component` is the widget rendered for the row; `Value` is an opaque identifier the caller can use to correlate a row with application data (e.g. a record ID).
+  - `widget.NewComponentList(items []ComponentListItem) *ComponentList` — constructor.
+  - Builder options mirror `List` exactly: `WithStyle`, `WithID`, `WithSelectedStyle`, `WithHighlight`, `WithCursor`, `WithOnSelect`, `WithOnDelete`, `WithOnCursorChange`.
+  - `SetItems`, `SelectedItem() (ComponentListItem, bool)`, `SelectedIndex() int`.
+  - Row heights are **variable**: each row's component is measured via `Measure` (unconstrained on Y) to determine how many terminal lines it occupies. Scroll is tracked by item index so the viewport always shows complete rows.
+  - Implements `oat.Layout` (`Children()` / `AddChild`) so theme propagation and the focus collector recurse into every row component automatically.
+  - Implements `oat.ValueGetter`: `Canvas.GetValue(id)` returns the `Value` field of the currently selected item.
+  - Theme tokens: `t.Text` (base), `t.ListSelected` (highlight), `t.FocusBorder` (focused border colour) — identical to `List`.
+
+```go
+makeRow := func(name, role, status string, id int) widget.ComponentListItem {
+    row := layout.NewHBox(
+        widget.NewText(name),
+        layout.NewFlexChild(widget.NewText(role), 1),
+        widget.NewText(status),
+    )
+    return widget.ComponentListItem{Component: row, Value: id}
+}
+
+list := widget.NewComponentList([]widget.ComponentListItem{
+    makeRow("Alice",   "Backend engineer",  "active",   1),
+    makeRow("Bob",     "Frontend engineer", "inactive", 2),
+    makeRow("Charlie", "DevOps",            "active",   3),
+}).
+    WithID("people-list").
+    WithOnSelect(func(idx int, item widget.ComponentListItem) {
+        id := item.Value.(int)
+        // open record
+    })
+```
+
+---
+
 ## v0.2.5
 
 **Named true-color palette · `widget.Divider` · `oat.VAnchor`**

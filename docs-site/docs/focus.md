@@ -58,6 +58,7 @@ app := oat.NewCanvas(
     oat.WithGlobalKeyBinding(
         oat.KeyBinding{
             Key:         tcell.KeyCtrlT,
+            Mod:         tcell.ModCtrl,
             Label:       "^T",
             Description: "Toggle theme",
             Handler: func() {

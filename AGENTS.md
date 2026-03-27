@@ -18,7 +18,7 @@ Sub-packages:
 | `github.com/antoniocali/oat-latte` | Core interfaces, `Canvas`, `Buffer`, `FocusManager`, geometry types |
 | `github.com/antoniocali/oat-latte/latte` | `Style`, `Color`, `BorderStyle`, `Theme`, built-in themes, named color palette |
 | `github.com/antoniocali/oat-latte/layout` | `VBox`, `HBox`, `Grid`, `Stack`, `Border`, `Padding`, `VFill`, `HFill`, `FlexChild` |
-| `github.com/antoniocali/oat-latte/widget` | `Text`, `Title`, `Button`, `CheckBox`, `EditText`, `List`, `Label`, `ProgressBar`, `StatusBar`, `NotificationManager`, `Dialog`, `Divider` |
+| `github.com/antoniocali/oat-latte/widget` | `Text`, `Title`, `Button`, `CheckBox`, `EditText`, `List`, `ComponentList`, `Label`, `ProgressBar`, `StatusBar`, `NotificationManager`, `Dialog`, `Divider` |
 
 ---
 
@@ -236,7 +236,7 @@ app := oat.NewCanvas(
     oat.WithNotificationManager(notifs), // wire + mount NotificationManager
     oat.WithGlobalKeyBinding(           // app-wide shortcut (see below)
         oat.KeyBinding{
-            Key: tcell.KeyCtrlT, Label: "^T", Description: "Toggle theme",
+            Key: tcell.KeyCtrlT, Mod: tcell.ModCtrl, Label: "^T", Description: "Toggle theme",
             Handler: func() { /* ... */ },
         },
     ),
@@ -469,6 +469,63 @@ list.SelectedItem() widget.ListItem
 list.SelectedIndex() int
 ```
 
+### ComponentList
+
+`ComponentList` is the component-row counterpart of `List`. Each row renders an arbitrary `Component` (any widget or layout) rather than a plain label string. A `Value interface{}` field on each item lets the caller correlate rows with application data (e.g. a record ID).
+
+Row heights are variable: each row's component is measured to determine how many terminal rows it occupies. Scroll is tracked by item index so the viewport always shows complete rows.
+
+`ComponentList` implements `oat.Layout` (`Children()` / `AddChild`) so theme propagation and the focus collector recurse into every row component automatically.
+
+```go
+// Build items — each row is an HBox with a name, a flex description, and a status tag.
+makeRow := func(name, desc, status string, id int) widget.ComponentListItem {
+    row := layout.NewHBox(
+        widget.NewText(name),
+        layout.NewFlexChild(widget.NewText(desc), 1),
+        widget.NewText(status),
+    )
+    return widget.ComponentListItem{Component: row, Value: id}
+}
+
+items := []widget.ComponentListItem{
+    makeRow("Alice",   "Backend engineer",  "active",   1),
+    makeRow("Bob",     "Frontend engineer", "inactive", 2),
+    makeRow("Charlie", "DevOps",            "active",   3),
+}
+
+list := widget.NewComponentList(items).
+    WithID("people-list").
+    WithOnSelect(func(idx int, item widget.ComponentListItem) {
+        id := item.Value.(int)
+        // navigate to record with this id
+    }).
+    WithOnCursorChange(func(idx int, item widget.ComponentListItem) {
+        // live preview
+    })
+```
+
+Builder options mirror `List` exactly:
+
+| Method | Description |
+|---|---|
+| `WithStyle(s latte.Style)` | Override the display style (border, colours, padding) |
+| `WithID(id string)` | Set a stable identifier for `Canvas.GetValue(id)` |
+| `WithSelectedStyle(s latte.Style)` | Override the highlight style for the selected row |
+| `WithHighlight(enabled bool)` | Fill selected row background with `selectedStyle` (default `true`) |
+| `WithCursor(cursor string)` | Gutter character next to the selected row (default `>`) |
+| `WithOnSelect(fn func(int, ComponentListItem))` | Callback fired on `Enter` |
+| `WithOnDelete(fn func(int, ComponentListItem))` | Callback fired on `Delete` |
+| `WithOnCursorChange(fn func(int, ComponentListItem))` | Callback fired on every cursor move |
+
+```go
+list.SetItems(newItems)
+list.SelectedItem() (widget.ComponentListItem, bool)
+list.SelectedIndex() int
+```
+
+`ComponentList` also implements `oat.ValueGetter`: `Canvas.GetValue(id)` returns the `Value` field of the currently selected item.
+
 ### Label (tag chips)
 
 ```go
@@ -600,6 +657,7 @@ app := oat.NewCanvas(
     oat.WithGlobalKeyBinding(
         oat.KeyBinding{
             Key:         tcell.KeyCtrlT,
+            Mod:         tcell.ModCtrl,
             Label:       "^T",
             Description: "Toggle theme",
             Handler: func() {
@@ -827,6 +885,7 @@ func (a *App) build() {
         oat.WithNotificationManager(a.notifs),  // wires channel + mounts as persistent overlay
         oat.WithGlobalKeyBinding(oat.KeyBinding{
             Key:         tcell.KeyCtrlT,
+            Mod:         tcell.ModCtrl,
             Label:       "^T",
             Description: "Toggle theme",
             Handler: func() {
