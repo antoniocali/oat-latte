@@ -1,7 +1,7 @@
 ---
 sidebar_position: 4
 title: Layout
-description: VBox, HBox, Border, Padding, Grid — building screens with oat-latte layout containers.
+description: VBox, HBox, Border, Padding, Grid, AlignChild — building screens with oat-latte layout containers.
 ---
 
 # Layout
@@ -66,6 +66,145 @@ hbox.AddFlexChild(progressBar, 1)
 The most common pattern: one `AddFlexChild(mainContent, 1)` for the central area, `AddChild` for everything else (header, footer, button rows). Everything snaps to its natural size; the main area fills the rest.
 :::
 
+### Cross-axis alignment
+
+By default every child in a VBox fills the full allocated width and every child in an HBox fills the full allocated height. Cross-axis alignment lets you **shrink a child to its natural size** and pin it to one edge (or centre it) within its slot — without adding spacer widgets.
+
+#### Box-wide default — WithHAlign / WithVAlign
+
+`VBox.WithHAlign` sets a default horizontal alignment for all children that do not declare their own. `HBox.WithVAlign` sets a default vertical alignment for all children.
+
+```go
+// Every child right-aligned inside this VBox
+vbox := layout.NewVBox(titleText, bodyText, footerText).
+    WithHAlign(oat.HAlignRight)
+
+// Every child pinned to the bottom inside this HBox
+hbox := layout.NewHBox(iconText, nameText, statusText).
+    WithVAlign(oat.VAlignBottom)
+```
+
+The zero value (`HAlignFill` / `VAlignFill`) is the default and keeps the existing full-stretch behaviour — no breaking change.
+
+**HAlign values** (used by VBox):
+
+| Value | Effect |
+|---|---|
+| `oat.HAlignFill` | Fill the full allocated width (default) |
+| `oat.HAlignLeft` | Shrink to natural width, pin to the left |
+| `oat.HAlignCenter` | Shrink to natural width, centre horizontally |
+| `oat.HAlignRight` | Shrink to natural width, pin to the right |
+
+**VAlign values** (used by HBox):
+
+| Value | Effect |
+|---|---|
+| `oat.VAlignFill` | Fill the full allocated height (default) |
+| `oat.VAlignTop` | Shrink to natural height, pin to the top |
+| `oat.VAlignMiddle` | Shrink to natural height, centre vertically |
+| `oat.VAlignBottom` | Shrink to natural height, pin to the bottom |
+
+#### Per-widget self-alignment
+
+Every built-in widget exposes fluent `WithHAlign` / `WithVAlign` methods that return the concrete widget type. This is the idiomatic way to set alignment inline in a builder chain:
+
+```go
+saveBtn   := widget.NewButton("Save",   fn).WithHAlign(oat.HAlignRight)
+cancelBtn := widget.NewButton("Cancel", fn).WithHAlign(oat.HAlignLeft)
+
+vbox := layout.NewVBox(saveBtn, cancelBtn)
+// saveBtn  → right-aligned
+// cancelBtn → left-aligned
+// box default remains HAlignFill — no effect because widgets declare their own
+```
+
+For custom widgets that embed `BaseComponent` but do not yet have their own `WithHAlign`/`WithVAlign` builders, set the field directly:
+
+```go
+myWidget.BaseComponent.HAlign = oat.HAlignRight
+```
+
+#### Per-child wrapper — AlignChild
+
+`layout.NewAlignChild` is the cleanest way to set alignment inline, without touching the widget's own `BaseComponent`:
+
+```go
+vbox := layout.NewVBox(
+    layout.NewAlignChild(saveBtn,   oat.HAlignRight,  oat.VAlignFill),
+    layout.NewAlignChild(cancelBtn, oat.HAlignLeft,   oat.VAlignFill),
+)
+```
+
+`AlignChild` takes precedence over both the child's own `BaseComponent` alignment and the box-wide default — it is the highest-priority override.
+
+#### Resolution order
+
+For each child in a VBox or HBox, the effective alignment is resolved as follows:
+
+1. **`AlignChild` wrapper** — if the child is an `AlignChild`, its declared alignment wins.
+2. **Child's own `AlignProvider`** — if the child embeds `BaseComponent` and has a non-fill value set, that value is used.
+3. **Box-wide default** — the value passed to `WithHAlign` / `WithVAlign` on the box itself.
+4. **`HAlignFill` / `VAlignFill`** — the fallback; full-stretch behaviour, identical to before alignment was added.
+
+#### Example — centred button row
+
+```go
+// A row of buttons that are each pinned to their natural width
+// and the whole group is centred by wrapping in a VBox set to HAlignCenter.
+btnRow := layout.NewHBox(
+    cancelBtn,
+    layout.NewHFill().WithMaxSize(2),
+    okBtn,
+)
+
+vbox := layout.NewVBox(
+    layout.NewFlexChild(contentArea, 1),
+    layout.NewAlignChild(btnRow, oat.HAlignCenter, oat.VAlignFill),
+)
+```
+
+#### Example — mixed alignment in one box
+
+```go
+// Title centred, body fills width, action link right-aligned
+vbox := layout.NewVBox(
+    layout.NewAlignChild(widget.NewText("Welcome"), oat.HAlignCenter, oat.VAlignFill),
+    layout.NewFlexChild(bodyContent, 1),
+    layout.NewAlignChild(widget.NewText("Sign in →"), oat.HAlignRight, oat.VAlignFill),
+)
+```
+
+#### Example — bottom-aligned status chip in an HBox
+
+```go
+// Icon + name fill full height; status chip is pinned to the bottom of the row
+row := layout.NewHBox(
+    layout.NewAlignChild(iconText, oat.HAlignFill, oat.VAlignFill),
+    layout.NewFlexChild(nameText, 1),
+    layout.NewAlignChild(statusChip, oat.HAlignFill, oat.VAlignBottom),
+)
+```
+
+#### Combining alignment with flex
+
+`AlignChild` is not a flex spacer on its own — wrap it with `AddFlexChild` or `NewFlexChild` when you also need it to participate in flex distribution:
+
+```go
+// Flex child that is also right-aligned within its slot
+vbox.AddFlexChild(
+    layout.NewAlignChild(myWidget, oat.HAlignRight, oat.VAlignFill),
+    1,
+)
+
+// Or inline:
+vbox := layout.NewVBox(
+    layout.NewFlexChild(
+        layout.NewAlignChild(myWidget, oat.HAlignRight, oat.VAlignFill),
+    ),
+)
+```
+
+
 ## Border
 
 Wraps a single child with a configurable box border and an optional title stamped into the top rule.
@@ -115,25 +254,23 @@ Omitting the anchor is the same as passing `oat.AnchorLeft`. This keeps all exis
 
 ### WithRoundedCorner
 
-`WithRoundedCorner(true)` switches the border style to `BorderRounded`, giving it arc corners (`╭╮╰╯`) instead of the default square ones (`┌┐└┘`). `WithRoundedCorner(false)` restores `BorderSingle`.
+```go
+func (b *Border) WithRoundedCorner(rounded bool) *Border
+```
 
-**Compatibility:** Arc corners exist in Unicode only for light-weight strokes (`─` `│`). Calling `WithRoundedCorner(true)` on a border whose style is `BorderDouble`, `BorderThick`, or `BorderDashed` will **panic** at construction time, because those strokes have no matching arc corner codepoints and the result would be visually broken.
+Stores the rounded-corner intent in an internal field; does **not** mutate `Style.Border`. The effective corner shape is resolved at render time: `BorderSingle` ↔ `BorderRounded` is toggled based on this field.
+
+**Incompatible styles** (`BorderDouble`, `BorderThick`, `BorderDashed`) are **silently left unchanged** in both directions — no panic is raised.
 
 | Border style | `WithRoundedCorner(true)` |
 |---|---|
-| `BorderSingle` (default) | Allowed → becomes `BorderRounded` |
-| `BorderDouble` | Panics — no double-stroke arc corners in Unicode |
-| `BorderThick` | Panics — no heavy-stroke arc corners in Unicode |
-| `BorderDashed` | Panics — arc corners don't connect to dashed strokes |
+| `BorderSingle` (default) | Renders with arc corners `╭╮╰╯` |
+| `BorderRounded` | Already rounded — no change |
+| `BorderDouble` | Silently ignored — no arc codepoints for double strokes |
+| `BorderThick` | Silently ignored — no arc codepoints for heavy strokes |
+| `BorderDashed` | Silently ignored — arc corners don't connect to dashed strokes |
 
-To use rounded corners with a non-default style, switch the entire border style via `WithStyle`:
-
-```go
-// This is already BorderRounded — no need for WithRoundedCorner.
-panel := layout.NewBorder(innerComponent).
-    WithStyle(latte.Style{Border: latte.BorderRounded}).
-    WithTitle("My Panel")
-```
+Once called, this explicit choice overrides the theme's `RoundedCorner` setting for this `Border` — `ApplyTheme` will not overwrite it on theme switches. Calling `WithRoundedCorner(false)` explicitly opts out of rounded corners even when `theme.RoundedCorner` is `true`.
 
 ## Padding
 
@@ -204,6 +341,56 @@ layout.NewFlexChild(rightPanel, 3)   // right panel gets 3× the space
 :::tip When to use FlexChild vs AddFlexChild
 They are equivalent in effect. Prefer `NewFlexChild` when building the child list inline (e.g. passing to a variadic constructor). Use `AddFlexChild` when you need to add a flex child to an already-constructed box.
 :::
+
+## AlignChild
+
+`AlignChild` wraps a single component with explicit cross-axis alignment — the per-child counterpart to `VBox.WithHAlign` / `HBox.WithVAlign`. Use it when one child in a box needs different alignment from the rest, or when the child component does not expose its own `WithHAlign`/`WithVAlign` builder.
+
+```go
+import "github.com/antoniocali/oat-latte/layout"
+
+// Save pinned right, Cancel pinned left — no spacers needed
+vbox := layout.NewVBox(
+    layout.NewAlignChild(saveBtn,   oat.HAlignRight, oat.VAlignFill),
+    layout.NewAlignChild(cancelBtn, oat.HAlignLeft,  oat.VAlignFill),
+)
+```
+
+### Constructor
+
+```go
+func NewAlignChild(child oat.Component, h oat.HAlign, v oat.VAlign) *AlignChild
+```
+
+- `h` — `oat.HAlignFill`, `HAlignLeft`, `HAlignCenter`, or `HAlignRight`
+- `v` — `oat.VAlignFill`, `VAlignTop`, `VAlignMiddle`, or `VAlignBottom`
+
+Pass `oat.HAlignFill` or `oat.VAlignFill` for the axis you do not want to constrain.
+
+### Combining with flex
+
+`AlignChild` is **not** a `FlexSpacer` — it does not claim flex space on its own. Wrap it with `AddFlexChild` or `NewFlexChild` when you also need it to participate in flex distribution:
+
+```go
+// A flex child that is also right-aligned in its slot
+vbox.AddFlexChild(
+    layout.NewAlignChild(headerWidget, oat.HAlignRight, oat.VAlignFill),
+    1,
+)
+
+// Inline using NewFlexChild:
+vbox := layout.NewVBox(
+    layout.NewFlexChild(
+        layout.NewAlignChild(headerWidget, oat.HAlignRight, oat.VAlignFill),
+    ),
+    btnRow,
+)
+```
+
+### Theme and focus propagation
+
+`AlignChild` implements `oat.Layout` via `Children()`, so theme propagation and focus collection recurse into the wrapped component automatically — exactly like `FlexChild`.
+
 
 ## Divider
 

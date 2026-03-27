@@ -202,6 +202,26 @@ func (l *ComponentList) GetValue() interface{} {
 	return item.Value
 }
 
+// WithHAlign sets the horizontal alignment for this widget within a VBox slot.
+// No argument (or HAlignFill) resets to the default fill behaviour.
+func (l *ComponentList) WithHAlign(a ...oat.HAlign) *ComponentList {
+	l.BaseComponent.HAlign = oat.HAlignFill
+	if len(a) > 0 {
+		l.BaseComponent.HAlign = a[0]
+	}
+	return l
+}
+
+// WithVAlign sets the vertical alignment for this widget within an HBox slot.
+// No argument (or VAlignFill) resets to the default fill behaviour.
+func (l *ComponentList) WithVAlign(a ...oat.VAlign) *ComponentList {
+	l.BaseComponent.VAlign = oat.VAlignFill
+	if len(a) > 0 {
+		l.BaseComponent.VAlign = a[0]
+	}
+	return l
+}
+
 // --- oat.Layout ------------------------------------------------------------
 
 // Children returns a flat slice of all row components so the framework's

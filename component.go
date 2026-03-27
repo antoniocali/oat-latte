@@ -127,6 +127,8 @@ type BaseComponent struct {
 	Style      latte.Style
 	FocusStyle latte.Style // applied when focused (merged over Style)
 	Title      string      // optional title rendered above the component
+	HAlign     HAlign      // horizontal alignment within a VBox slot (default HAlignFill)
+	VAlign     VAlign      // vertical alignment within an HBox slot (default VAlignFill)
 }
 
 // initID ensures the component has an ID, generating one if not already set.
@@ -193,6 +195,36 @@ type IDer interface {
 // GetID returns the component's unique identifier.
 func (b *BaseComponent) GetID() string { return b.ID }
 
+// GetHAlign returns the component's horizontal alignment preference.
+// Satisfies AlignProvider. The zero value is HAlignFill (full-width, unchanged behaviour).
+func (b *BaseComponent) GetHAlign() HAlign { return b.HAlign }
+
+// GetVAlign returns the component's vertical alignment preference.
+// Satisfies AlignProvider. The zero value is VAlignFill (full-height, unchanged behaviour).
+func (b *BaseComponent) GetVAlign() VAlign { return b.VAlign }
+
+// WithHAlign sets the horizontal alignment for this component within a VBox slot.
+// Variadic so WithHAlign() with no arguments is valid (resets to HAlignFill).
+func (b *BaseComponent) WithHAlign(a ...HAlign) *BaseComponent {
+	if len(a) > 0 {
+		b.HAlign = a[0]
+	} else {
+		b.HAlign = HAlignFill
+	}
+	return b
+}
+
+// WithVAlign sets the vertical alignment for this component within an HBox slot.
+// Variadic so WithVAlign() with no arguments is valid (resets to VAlignFill).
+func (b *BaseComponent) WithVAlign(a ...VAlign) *BaseComponent {
+	if len(a) > 0 {
+		b.VAlign = a[0]
+	} else {
+		b.VAlign = VAlignFill
+	}
+	return b
+}
+
 // Anchor controls the horizontal position of an element within its container.
 //
 // It is the H-axis anchor type. All APIs that place content along the
@@ -202,11 +234,7 @@ func (b *BaseComponent) GetID() string { return b.ID }
 //   - Divider.WithAnchor (AxisVertical) — which section of a vertical divider to render
 //
 // For the vertical axis see VAnchor.
-//
-// Future Align feature note: Anchor is intentionally H-axis only so that a
-// future Align type (for positioning a widget within its allocated region,
-// e.g. Text aligned to the right in a VBox) can be modelled as a separate
-// type without conflating placement with alignment.
+// For positioning a widget within its allocated cross-axis region see HAlign / VAlign.
 type Anchor int
 
 const (
@@ -224,9 +252,8 @@ const (
 // vertical axis accept VAnchor:
 //   - Divider.WithAnchor (AxisHorizontal) — which section of a horizontal divider to render
 //
-// Future Align feature note: VAnchor is intentionally V-axis only so that a
-// future Align type (e.g. Text aligned to the bottom of its row in an HBox)
-// can be built without mixing placement semantics.
+// VAnchor is intentionally V-axis only so that the cross-axis alignment types
+// (HAlign / VAlign) can be built without mixing placement semantics.
 type VAnchor int
 
 const (
@@ -237,6 +264,65 @@ const (
 	// VAnchorBottom aligns the element to the bottom edge.
 	VAnchorBottom
 )
+
+// HAlign controls how a widget is positioned along the horizontal (cross) axis
+// within its allocated slot in a VBox (or any container that distributes space
+// vertically and needs to decide how wide each child is).
+//
+// The zero value HAlignFill preserves the existing behaviour: the child is
+// given the full allocated width, exactly as before this type was added.
+//
+// Non-fill values cause the container to measure the child's desired width and
+// then position it within the slot according to the chosen alignment, leaving
+// the remaining width empty.
+type HAlign int
+
+const (
+	// HAlignFill gives the child the full allocated width. This is the default
+	// (zero value) and matches the pre-alignment behaviour of VBox.
+	HAlignFill HAlign = iota
+	// HAlignLeft shrinks the child to its desired width and pins it to the left.
+	HAlignLeft
+	// HAlignCenter shrinks the child to its desired width and centres it.
+	HAlignCenter
+	// HAlignRight shrinks the child to its desired width and pins it to the right.
+	HAlignRight
+)
+
+// VAlign controls how a widget is positioned along the vertical (cross) axis
+// within its allocated slot in an HBox (or any container that distributes space
+// horizontally and needs to decide how tall each child is).
+//
+// The zero value VAlignFill preserves the existing behaviour: the child is
+// given the full allocated height, exactly as before this type was added.
+//
+// Non-fill values cause the container to measure the child's desired height and
+// then position it within the slot according to the chosen alignment, leaving
+// the remaining height empty.
+type VAlign int
+
+const (
+	// VAlignFill gives the child the full allocated height. This is the default
+	// (zero value) and matches the pre-alignment behaviour of HBox.
+	VAlignFill VAlign = iota
+	// VAlignTop shrinks the child to its desired height and pins it to the top.
+	VAlignTop
+	// VAlignMiddle shrinks the child to its desired height and centres it.
+	VAlignMiddle
+	// VAlignBottom shrinks the child to its desired height and pins it to the bottom.
+	VAlignBottom
+)
+
+// AlignProvider is an opt-in interface for components that carry their own
+// cross-axis alignment preferences. Any component embedding BaseComponent
+// satisfies this interface automatically via the GetHAlign / GetVAlign getters.
+//
+// VBox inspects each child's HAlign (via AlignProvider or its own default).
+// HBox inspects each child's VAlign (via AlignProvider or its own default).
+type AlignProvider interface {
+	GetHAlign() HAlign
+	GetVAlign() VAlign
+}
 
 // FocusGuard is an opt-in interface that lets a component dynamically opt out
 // of receiving keyboard focus. When a component implements FocusGuard and

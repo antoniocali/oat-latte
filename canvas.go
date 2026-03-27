@@ -673,3 +673,13 @@ func (cv *Canvas) SetTheme(t latte.Theme) {
 		applyThemeTree(o, t)
 	}
 }
+
+// GetTheme returns a pointer to the active theme. The pointer is the same
+// value stored internally by SetTheme — do not mutate the pointed-to Theme;
+// use SetTheme with a new value instead.
+//
+// Returns nil if no theme has been set (i.e. NewCanvas was called without
+// WithTheme and SetTheme has never been called).
+func (cv *Canvas) GetTheme() *latte.Theme {
+	return cv.theme
+}

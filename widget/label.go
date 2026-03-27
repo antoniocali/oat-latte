@@ -27,6 +27,12 @@ type Label struct {
 	separator rune
 	sepStyle  latte.Style // style for the separator
 	highlight bool        // whether chips render with their background colour
+
+	// callerStyle preserves the style set by the caller (via WithStyle) before
+	// any theme application. ApplyTheme always merges the current theme token
+	// with this original so that switching themes fully replaces the previous
+	// theme's colours rather than accumulating stale values.
+	callerStyle latte.Style
 }
 
 // NewLabel creates a Label displaying the given chip labels.
@@ -44,7 +50,7 @@ func NewLabel(labels []string) *Label {
 }
 
 // WithStyle sets the display style for the chip labels.
-func (l *Label) WithStyle(s latte.Style) *Label { l.Style = s; return l }
+func (l *Label) WithStyle(s latte.Style) *Label { l.Style = s; l.callerStyle = s; return l }
 
 // WithID sets the widget's identifier for canvas lookup.
 func (l *Label) WithID(id string) *Label { l.ID = id; return l }
@@ -58,6 +64,26 @@ func (l *Label) WithSeparator(r rune) *Label { l.separator = r; return l }
 // of the chip style is used — useful when embedding labels inside rows that
 // already have a coloured background.
 func (l *Label) WithHighlight(enabled bool) *Label { l.highlight = enabled; return l }
+
+// WithHAlign sets the horizontal alignment for this widget within a VBox slot.
+// No argument (or HAlignFill) resets to the default fill behaviour.
+func (l *Label) WithHAlign(a ...oat.HAlign) *Label {
+	l.BaseComponent.HAlign = oat.HAlignFill
+	if len(a) > 0 {
+		l.BaseComponent.HAlign = a[0]
+	}
+	return l
+}
+
+// WithVAlign sets the vertical alignment for this widget within an HBox slot.
+// No argument (or VAlignFill) resets to the default fill behaviour.
+func (l *Label) WithVAlign(a ...oat.VAlign) *Label {
+	l.BaseComponent.VAlign = oat.VAlignFill
+	if len(a) > 0 {
+		l.BaseComponent.VAlign = a[0]
+	}
+	return l
+}
 
 // SetLabels replaces the displayed chips.
 func (l *Label) SetLabels(labels []string) { l.labels = labels }
@@ -75,12 +101,14 @@ func (l *Label) GetValue() interface{} {
 }
 
 // ApplyTheme applies the Tag token as the chip style and Muted as the
-// separator style.
+// separator style. The theme acts as the base; any style fields explicitly set
+// by the caller (via WithStyle) take precedence via Merge.
+// ApplyTheme always re-derives Style from the theme token merged with the
+// original callerStyle so that switching themes fully replaces the previous
+// theme's colours rather than accumulating stale values.
 func (l *Label) ApplyTheme(t latte.Theme) {
-	l.Style = t.Tag.Merge(l.Style)
-	if l.sepStyle == (latte.Style{}) {
-		l.sepStyle = t.Muted
-	}
+	l.Style = t.Tag.Merge(l.callerStyle)
+	l.sepStyle = t.Muted
 }
 
 // Measure returns the single-row width of all chips and separators.

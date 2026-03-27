@@ -118,6 +118,15 @@ type Theme struct {
 	// to a semi-distinct color to visually separate the dialog from the rest of
 	// the UI.
 	Scrim Style
+
+	// RoundedCorner controls whether widgets that support arc corners
+	// (╭─╮ / ╰─╯) use them by default when the theme is applied.
+	// When true, Button and Border widgets automatically use rounded corners
+	// unless the caller has explicitly overridden the corner style on that
+	// individual widget.  Widgets whose resolved border style is incompatible
+	// with arc corners (BorderDouble, BorderThick, BorderDashed) silently keep
+	// their square corners — no panic is raised.
+	RoundedCorner bool
 }
 
 // ── Theme builder methods ────────────────────────────────────────────────────
@@ -143,6 +152,12 @@ type Theme struct {
 
 // WithName returns a copy of the theme with Name set to n.
 func (t Theme) WithName(n string) Theme { t.Name = n; return t }
+
+// WithRoundedCorner returns a copy of the theme with RoundedCorner set to r.
+// When true, Button and Border automatically use arc corners (╭─╮ / ╰─╯).
+// Widgets whose resolved border style is incompatible (BorderDouble, BorderThick,
+// BorderDashed) silently keep square corners — no panic is raised.
+func (t Theme) WithRoundedCorner(r bool) Theme { t.RoundedCorner = r; return t }
 
 // WithCanvas merges s into the Canvas token and returns the updated theme.
 func (t Theme) WithCanvas(s Style) Theme { t.Canvas = t.Canvas.Merge(s); return t }
@@ -288,6 +303,8 @@ var ThemeDefault = Theme{
 	NotificationError:   Style{FG: ColorBlack, BG: ColorBrightRed, Bold: true},
 
 	Scrim: Style{BG: ColorDefault},
+
+	RoundedCorner: true,
 }
 
 // ThemeDark is a true-color dark theme with a deep navy-black background and
@@ -331,6 +348,8 @@ var ThemeDark = Theme{
 	NotificationError:   Style{FG: DarkBg, BG: DarkError, Bold: true},
 
 	Scrim: Style{BG: DarkBgScrim},
+
+	RoundedCorner: true,
 }
 
 // ThemeLight is a true-color light theme with a warm off-white background.
@@ -374,6 +393,8 @@ var ThemeLight = Theme{
 	NotificationError:   Style{FG: LightBg, BG: LightError, Bold: true},
 
 	Scrim: Style{BG: LightBgScrim},
+
+	RoundedCorner: true,
 }
 
 // ThemeDracula follows the popular Dracula color scheme.
@@ -418,6 +439,8 @@ var ThemeDracula = Theme{
 	NotificationError:   Style{FG: DraculaBg, BG: DraculaRed, Bold: true},
 
 	Scrim: Style{BG: DraculaBgScrim},
+
+	RoundedCorner: true,
 }
 
 // ThemeNord follows the Nord color scheme (arctic, bluish palette).
@@ -462,4 +485,6 @@ var ThemeNord = Theme{
 	NotificationError:   Style{FG: Nord6, BG: Nord11, Bold: true},
 
 	Scrim: Style{BG: NordBgScrim},
+
+	RoundedCorner: true,
 }

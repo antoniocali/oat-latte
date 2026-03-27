@@ -224,13 +224,13 @@ func (a *App) discardChanges() {
 func (a *App) showNewNoteDialog() {
 	titleIn := widget.NewEditText().
 		WithStyle(latte.Style{Border: latte.BorderExplicitNone}).
-		WithHint("Title").
-		WithPlaceholder("Note title…")
+		WithPlaceholder("Note title…").
+		WithHint("Title").WithVAlign(oat.VAlignTop)
 
 	descIn := widget.NewMultiLineEditText().
 		WithStyle(latte.Style{Border: latte.BorderExplicitNone}).
-		WithHint("Description").
-		WithPlaceholder("Write your note here…")
+		WithPlaceholder("Write your note here…").
+		WithHint("Note description")
 
 	tagsIn := widget.NewEditText().
 		WithStyle(latte.Style{Border: latte.BorderExplicitNone}).
@@ -279,17 +279,21 @@ func (a *App) showNewNoteDialog() {
 	btnRow.AddChild(layout.NewHFill().WithMaxSize(2))
 	btnRow.AddChild(createBtn)
 
-	dialogVBox := layout.NewVBox(titleIn)
+	dialogVBox := layout.NewVBox()
+	dialogVBox.AddChild(titleIn)
 	dialogVBox.AddFlexChild(descIn, 1)
 	dialogVBox.AddChild(tagsIn)
-	dialogVBox.AddChild(layout.NewVFill().WithMaxSize(1))
 	dialogVBox.AddChild(btnRow)
 
-	dlgBody := layout.NewPaddingUniform(dialogVBox, 1)
+	dlgBody := layout.NewPadding(dialogVBox, oat.Insets{
+		Top:    0,
+		Right:  1,
+		Bottom: 0,
+		Left:   1,
+	})
 
 	dlg := widget.NewDialog("New Note").
-		WithChild(dlgBody).
-		WithSize(widget.DialogPercent(50), widget.DialogPercent(60))
+		WithChild(dlgBody).WithSize(widget.DialogPercent(30), widget.DialogPercent(50))
 
 	a.canvas.ShowDialog(dlg)
 }
@@ -315,7 +319,7 @@ func (a *App) showDeleteDialog(note Note) {
 		a.notifs.Push("Note deleted", widget.NotificationKindWarning, 2*time.Second)
 	})
 
-	msg := widget.NewText(fmt.Sprintf("Delete \"%s\"?", note.Title))
+	msg := widget.NewText(fmt.Sprintf("Delete \"%s\"?", note.Title)).WithHAlign(oat.HAlignLeft)
 	hint := widget.NewText("This action cannot be undone.")
 
 	btnRow := layout.NewHBox()
@@ -324,15 +328,15 @@ func (a *App) showDeleteDialog(note Note) {
 	btnRow.AddChild(layout.NewHFill().WithMaxSize(2))
 	btnRow.AddChild(deleteBtn)
 
-	body := layout.NewPaddingUniform(layout.NewVBox(
-		msg, hint,
-		layout.NewVFill().WithMaxSize(1),
+	body := layout.NewPadding(layout.NewVBox(
+		msg,
+		hint,
+		layout.NewVFill().WithMaxSize(2),
 		btnRow,
-	), 1)
+	), oat.Insets{Left: 1, Right: 1})
 
 	dlg = widget.NewDialog("Confirm Delete").
-		WithChild(body).
-		WithMaxSize(52, 9)
+		WithChild(body).WithMaxSize(50, 8)
 
 	a.canvas.ShowDialog(dlg)
 }

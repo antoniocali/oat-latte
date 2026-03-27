@@ -17,7 +17,7 @@ Sub-packages:
 |---|---|
 | `github.com/antoniocali/oat-latte` | Core interfaces, `Canvas`, `Buffer`, `FocusManager`, geometry types |
 | `github.com/antoniocali/oat-latte/latte` | `Style`, `Color`, `BorderStyle`, `Theme`, built-in themes, named color palette |
-| `github.com/antoniocali/oat-latte/layout` | `VBox`, `HBox`, `Grid`, `Stack`, `Border`, `Padding`, `VFill`, `HFill`, `FlexChild` |
+| `github.com/antoniocali/oat-latte/layout` | `VBox`, `HBox`, `Grid`, `Stack`, `Border`, `Padding`, `VFill`, `HFill`, `FlexChild`, `AlignChild` |
 | `github.com/antoniocali/oat-latte/widget` | `Text`, `Title`, `Button`, `CheckBox`, `EditText`, `List`, `ComponentList`, `Label`, `ProgressBar`, `StatusBar`, `NotificationManager`, `Dialog`, `Divider` |
 
 ---
@@ -109,7 +109,7 @@ oat.AnchorRight   // right edge
 
 ### VAnchor
 
-`oat.VAnchor` is the **vertical-axis** positioning type. It is used by `Divider.WithMaxSizeV` (for `AxisHorizontal` dividers). It is reserved for the future Align feature that will let widgets position themselves within their allocated region on the V-axis (e.g. `Text` aligned to the bottom of a row in an `HBox`).
+`oat.VAnchor` is the **vertical-axis** positioning type. It is used by `Divider.WithMaxSizeV` (for `AxisHorizontal` dividers).
 
 ```go
 oat.VAnchorTop     // default — top edge
@@ -118,6 +118,77 @@ oat.VAnchorBottom  // bottom edge
 ```
 
 The two types are kept separate so APIs that accept horizontal placement cannot accidentally receive a `VAnchor` value and vice versa — the compiler enforces correct axis usage.
+
+### HAlign / VAlign
+
+`oat.HAlign` and `oat.VAlign` are **cross-axis widget positioning** types. They control where a widget sits *within its allocated slot* in a box layout — as opposed to `Anchor`/`VAnchor` which control where a piece of text or a rule sits *within its widget*.
+
+`HAlign` is used by **VBox** (vertical box distributes rows; each child needs horizontal placement):
+
+```go
+oat.HAlignFill    // 0 — fill the full allocated width (default, unchanged behaviour)
+oat.HAlignLeft    // shrink to desired width, pin left
+oat.HAlignCenter  // shrink to desired width, centre horizontally
+oat.HAlignRight   // shrink to desired width, pin right
+```
+
+`VAlign` is used by **HBox** (horizontal box distributes columns; each child needs vertical placement):
+
+```go
+oat.VAlignFill    // 0 — fill the full allocated height (default, unchanged behaviour)
+oat.VAlignTop     // shrink to desired height, pin top
+oat.VAlignMiddle  // shrink to desired height, centre vertically
+oat.VAlignBottom  // shrink to desired height, pin bottom
+```
+
+Every built-in widget exposes fluent `WithHAlign` / `WithVAlign` methods that return the concrete widget type, so alignment can be set inline in a builder chain:
+
+```go
+btn := widget.NewButton("Save", fn).WithHAlign(oat.HAlignRight)
+lbl := widget.NewText("note").WithVAlign(oat.VAlignBottom)
+```
+
+Any component embedding `BaseComponent` automatically satisfies `oat.AlignProvider`. Custom widgets that have not yet added their own `WithHAlign`/`WithVAlign` builders can fall back to setting the field directly:
+
+```go
+myWidget.BaseComponent.HAlign = oat.HAlignRight
+```
+
+#### Alignment scope — direct children only
+
+**`HAlign` and `VAlign` are only honoured on the direct children of the box that distributes the relevant axis.** The alignment offset is computed once, at the box-to-direct-child boundary. Intermediary containers (`Border`, `Padding`, `FlexChild`, `Stack`) pass the full allocated region straight to their own child without any alignment computation, so `VAlign`/`HAlign` set on a deeply nested widget are silently ignored.
+
+| Container | Consults `VAlign` on its children? | Consults `HAlign` on its children? |
+|---|---|---|
+| `HBox` | Yes — direct children only | No |
+| `VBox` | No | Yes — direct children only |
+| `Border` | No | No |
+| `Padding` | No | No |
+| `FlexChild` | No | No |
+| `AlignChild` | Provides override to parent box | Provides override to parent box |
+
+**Correct pattern — align a bordered box inside an HBox:**
+
+```go
+// WRONG: VAlign is set on the Text, which is buried inside Border.
+//        HBox sees Border.GetVAlign() == VAlignFill and ignores the Text's preference.
+inner  := widget.NewText("mid").WithVAlign(oat.VAlignMiddle)  // ← has no effect
+border := layout.NewBorder(inner)
+hbox.AddFlexChild(border, 1)
+
+// CORRECT option A: set VAlign on the Border directly (it embeds BaseComponent).
+inner  := widget.NewText("mid")
+border := layout.NewBorder(inner)
+border.BaseComponent.VAlign = oat.VAlignMiddle  // HBox reads this via AlignProvider
+hbox.AddFlexChild(border, 1)
+
+// CORRECT option B: wrap with AlignChild (highest-priority override).
+inner  := widget.NewText("mid")
+border := layout.NewBorder(inner)
+hbox.AddFlexChild(layout.NewAlignChild(border, oat.HAlignFill, oat.VAlignMiddle), 1)
+```
+
+The same rule applies to `HAlign` inside a `VBox`: set it on the VBox's direct child, not on a widget nested deeper inside a container.
 
 ---
 
@@ -148,12 +219,44 @@ Non-zero fields from `override` replace those in `base`. Use this pattern in `Ap
 
 ```go
 func (w *MyWidget) ApplyTheme(t latte.Theme) {
-    w.Style = t.Input.Merge(w.Style)         // theme is base; caller wins
-    w.FocusStyle = t.InputFocus.Merge(w.FocusStyle)
+    w.Style = t.Input.Merge(w.callerStyle)         // theme is base; caller wins
+    w.FocusStyle = t.InputFocus.Merge(w.callerFocusStyle)
 }
 ```
 
 Never do `w.Style = t.Input` — that overwrites explicit overrides such as `BorderExplicitNone`.
+
+#### `callerStyle` pattern (required for correct theme switching)
+
+Every widget that exposes `WithStyle` must store the caller's original intent in a separate `callerStyle` field and use **that** as the Merge base in `ApplyTheme` — never `w.Style` (the current, already-themed value).
+
+The problem with `w.Style = t.Input.Merge(w.Style)`:
+
+- First `ApplyTheme` call: `w.Style` is zero → `Merge` takes the theme value → correct.
+- Second `ApplyTheme` call (theme switch): `w.Style` now holds the *old theme's* full colours. `Merge` keeps those stale non-zero fields; the new theme cannot fully replace them. Borders, colours and attributes from the old theme get permanently stuck.
+
+**Correct implementation:**
+
+```go
+type MyWidget struct {
+    oat.BaseComponent
+    callerStyle      latte.Style // set by WithStyle; never mutated by ApplyTheme
+    callerFocusStyle latte.Style // set by WithFocusStyle; never mutated by ApplyTheme
+}
+
+func (w *MyWidget) WithStyle(s latte.Style) *MyWidget {
+    w.Style = s          // used for immediate rendering before theme is applied
+    w.callerStyle = s    // preserved as the stable Merge base for all future ApplyTheme calls
+    return w
+}
+
+func (w *MyWidget) ApplyTheme(t latte.Theme) {
+    w.Style = t.Input.Merge(w.callerStyle)             // always start from caller's original intent
+    w.FocusStyle = t.InputFocus.Merge(w.callerFocusStyle)
+}
+```
+
+Do **not** pre-seed `FocusStyle` in the constructor with hardcoded values (e.g. `latte.Focused` or `latte.Style{BorderFG: latte.ColorBrightCyan}`). Those non-zero fields will survive every `SetTheme` via `Merge`, blocking the new theme's accent colour from taking effect. Let `ApplyTheme` set `FocusStyle` entirely from the theme token.
 
 ### Border sentinels
 
@@ -220,6 +323,8 @@ pink := latte.ThemeDark.
 
 `WithFocusBorder` accepts a `Color` directly (not a `Style`) because `FocusBorder` is a plain `Color` field. All other token methods accept a `Style`.
 
+`WithRoundedCorner(bool)` sets the `RoundedCorner` bool field directly (not a `Style`). All five built-in themes set `RoundedCorner: true`, which makes `Button` and `Border` automatically use arc corners (`╭─╮ / ╰─╯`) when the theme is applied. Widgets whose resolved border style is incompatible (e.g. `BorderDashed`) silently keep square corners.
+
 ---
 
 ## Canvas
@@ -252,6 +357,7 @@ if err := app.Run(); err != nil {
 app.Run() error                        // start event loop; blocks until quit
 app.Quit()                             // signal graceful exit
 app.SetTheme(t latte.Theme)            // replace active theme and re-apply to full tree
+app.GetTheme() *latte.Theme            // return pointer to active theme; nil if none set
 app.ShowDialog(d Component)            // push modal overlay, steal focus; dismissed by Esc
 app.ShowPersistentOverlay(d Component) // render on top always; never dismissed by Esc
 app.HideDialog()                       // pop topmost overlay, restore body focus
@@ -283,6 +389,24 @@ hbox := layout.NewHBox(child1, child2)  // variadic shorthand
 hbox.AddFlexChild(progressBar, 1)
 ```
 
+#### Cross-axis alignment
+
+`VBox.WithHAlign` sets a default horizontal alignment for all children that do not declare their own:
+
+```go
+// All children right-aligned inside a VBox:
+vbox := layout.NewVBox(title, body, footer).WithHAlign(oat.HAlignRight)
+```
+
+`HBox.WithVAlign` sets a default vertical alignment for all children:
+
+```go
+// All children bottom-aligned inside an HBox:
+hbox := layout.NewHBox(textA, textB).WithVAlign(oat.VAlignBottom)
+```
+
+Zero value (`HAlignFill` / `VAlignFill`) is the default and preserves the previous full-stretch behaviour — no breaking change.
+
 ### FlexChild
 
 `layout.NewFlexChild(child, weight...)` wraps any `Component` as a flex slot so it can be passed inline to variadic constructors:
@@ -298,6 +422,25 @@ vbox := layout.NewVBox(
 
 - Weight defaults to `1`; minimum effective weight is `1`.
 - Implements `oat.Layout` via `Children()` — theme propagation and focus collection recurse into the wrapped component automatically.
+
+### AlignChild
+
+`layout.NewAlignChild(child oat.Component, h oat.HAlign, v oat.VAlign) *AlignChild` wraps any `Component` with per-child cross-axis alignment overrides. Use this when a single child should deviate from the box-wide default, or when you want inline per-child alignment without calling `WithHAlign`/`WithVAlign` on `BaseComponent`.
+
+```go
+// Mixed: per-child alignment via AlignChild wrapper:
+vbox := layout.NewVBox(
+    layout.NewAlignChild(saveBtn, oat.HAlignRight, oat.VAlignFill),
+    layout.NewAlignChild(cancelBtn, oat.HAlignLeft, oat.VAlignFill),
+)
+
+// Combine AlignChild + flex weight:
+vbox.AddFlexChild(layout.NewAlignChild(btn, oat.HAlignRight, oat.VAlignFill), 1)
+```
+
+- `AlignChild` is NOT a `FlexSpacer` — it does not claim flex space on its own. Wrap it with `AddFlexChild` or `NewFlexChild` when flex behaviour is needed.
+- Implements `oat.Layout` via `Children()` — theme propagation and focus collection recurse into the wrapped component automatically.
+- `AlignChild.GetHAlign()` / `GetVAlign()` are checked first by the box's resolution logic — they take precedence over both the child's own `BaseComponent.HAlign`/`VAlign` and the box-wide default.
 
 ### Border
 
@@ -329,9 +472,10 @@ panel := layout.NewBorder(innerComponent).
 func (b *Border) WithRoundedCorner(rounded bool) *Border
 ```
 
-- `true` — switches the border style to `BorderRounded` (`╭─╮│╰─╯`).
-- `false` — restores `BorderSingle` if the current style is `BorderRounded`; no-op otherwise.
-- **Panics** if called with `true` when the current border style is `BorderDouble`, `BorderThick`, or `BorderDashed`. Unicode provides arc corner codepoints (`╭╮╰╯`) only for light-weight strokes (`─` `│`); they do not connect visually to double (`═` `║`), heavy (`━` `┃`), or dashed (`╌` `╎`) lines. Use `WithStyle(latte.Style{Border: latte.BorderRounded})` to switch style entirely instead.
+- Stores the rounded-corner intent in an internal field; does **not** mutate `Style.Border`.
+- The effective corner shape is resolved at render time: `BorderSingle` ↔ `BorderRounded` is toggled based on this field; incompatible styles (`BorderDouble`, `BorderThick`, `BorderDashed`) are **silently left unchanged** in both directions — no panic is raised.
+- Once called, this explicit choice overrides the theme's `RoundedCorner` setting for this `Border`. `ApplyTheme` will not overwrite it on theme switches.
+- Calling `WithRoundedCorner(false)` explicitly opts out of rounded corners even when `theme.RoundedCorner` is `true`.
 
 ### Padding
 
@@ -400,7 +544,7 @@ Border presence is determined solely by `b.Style` (the unfocused base style). `F
 
 When `b.Style` has a border set, `Measure` returns `Height: 3` (top border + label row + bottom border) and the border is drawn at render time. Without a border, `Measure` returns `Height: 1` and the label is rendered as `"[ label ]"`.
 
-All built-in themes set `Button.Border: BorderSingle` so buttons always render with a visible border. `ButtonFocus` carries only `Reverse: true` and an accent `BorderFG` to highlight the active button.
+All built-in themes set `Button.Border: BorderSingle` and `RoundedCorner: true`, so buttons automatically render with rounded arc corners. `ButtonFocus` carries only `Reverse: true` and an accent `BorderFG` to highlight the active button.
 
 #### WithRoundedCorner
 
@@ -409,9 +553,9 @@ func (b *Button) WithRoundedCorner(rounded bool) *Button
 ```
 
 - `true` — draws border arc corners (`╭╮╰╯`) instead of square ones (`┌┐└┘`).
-- `false` — no-op; arc corners are only applied when `true`.
-- **Panics at render time** if `WithRoundedCorner(true)` is set and the effective border style is `BorderDouble`, `BorderThick`, or `BorderDashed`. Arc corner codepoints exist only for light-weight strokes (`─` `│`).
-- **`WithStyle` panics immediately** at construction time if called with `BorderDouble`, `BorderThick`, or `BorderDashed` — only `BorderNone`, `BorderExplicitNone`, `BorderSingle`, and `BorderRounded` are valid for Button.
+- `false` — disables arc corners regardless of the theme's `RoundedCorner` setting.
+- Once called, this explicit choice overrides the theme's `RoundedCorner` setting for this button.
+- If the button's resolved border style is incompatible (`BorderDouble`, `BorderThick`, `BorderDashed`) the rounded-corner request is **silently ignored** — no panic is raised.
 
 ### CheckBox
 
@@ -770,9 +914,11 @@ type KeyBinding struct {
 
 ```go
 func (w *MyWidget) ApplyTheme(t latte.Theme) {
-    // Theme as base, caller-set fields take precedence via Merge.
-    w.Style = t.Input.Merge(w.Style)
-    w.FocusStyle = t.InputFocus.Merge(w.FocusStyle)
+    // Always merge onto callerStyle (the original caller-set value), not w.Style.
+    // Using w.Style would accumulate stale colours from the previous theme on
+    // every SetTheme call. See the callerStyle pattern in the Style.Merge section.
+    w.Style = t.Input.Merge(w.callerStyle)
+    w.FocusStyle = t.InputFocus.Merge(w.callerFocusStyle)
 }
 ```
 

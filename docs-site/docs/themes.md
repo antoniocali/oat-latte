@@ -99,15 +99,22 @@ input := widget.NewEditText().
 Non-zero fields from `override` replace the corresponding fields in `base`. Zero fields in `override` leave `base` untouched. Calling `base.Merge(override)` is how theme tokens cascade without clobbering explicit per-widget settings.
 
 :::warning
-In `ApplyTheme`, always use `Merge` — never assign the theme token directly:
+In `ApplyTheme`, always merge onto `callerStyle` — never assign the theme token directly, and never merge onto `w.Style`:
 
 ```go
-// Correct — theme is the base; per-widget overrides survive.
+// Correct — theme is the base; the caller's original intent survives theme switches.
+func (w *MyWidget) ApplyTheme(t latte.Theme) {
+    w.Style = t.Input.Merge(w.callerStyle)
+}
+
+// Wrong — merging onto w.Style accumulates stale values from the previous theme.
+// On the second SetTheme call the old theme's colours stick and the new theme
+// cannot fully replace them.
 func (w *MyWidget) ApplyTheme(t latte.Theme) {
     w.Style = t.Input.Merge(w.Style)
 }
 
-// Wrong — overwrites BorderExplicitNone and any other caller-set field.
+// Also wrong — overwrites BorderExplicitNone and any other caller-set field.
 func (w *MyWidget) ApplyTheme(t latte.Theme) {
     w.Style = t.Input
 }
@@ -168,6 +175,24 @@ app := oat.NewCanvas(
 
 `SetTheme` is safe to call from any key-event callback — it runs on the main goroutine and the event loop re-renders on the next tick automatically.
 
+### Reading the active theme
+
+Call `app.GetTheme()` to retrieve a pointer to the currently active theme. This is useful when you need to derive a modified variant from the current theme rather than hardcoding a specific one.
+
+```go
+// Derive a borderless variant of whatever theme is currently active.
+if t := app.GetTheme(); t != nil {
+    borderless := t.
+        WithPanel(latte.Style{Border: latte.BorderExplicitNone}).
+        WithInput(latte.Style{Border: latte.BorderExplicitNone}).
+        WithButton(latte.Style{Border: latte.BorderExplicitNone}).
+        WithName(t.Name + "-borderless")
+    app.SetTheme(borderless)
+}
+```
+
+`GetTheme` returns `nil` if `NewCanvas` was called without `WithTheme` and `SetTheme` has never been invoked. Always guard with a nil check before dereferencing the pointer.
+
 ## Semantic theme tokens
 
 Themes expose named style tokens — roles rather than components — so the same theme drives the entire UI consistently:
@@ -194,9 +219,11 @@ Pick the token that best describes your widget's role and apply it via `Merge`:
 
 ```go
 func (w *MyWidget) ApplyTheme(t latte.Theme) {
-    // Pick the token that best describes your widget's role.
-    w.Style      = t.Input.Merge(w.Style)
-    w.FocusStyle = t.InputFocus.Merge(w.FocusStyle)
+    // Always merge onto callerStyle (the original caller-set value), not w.Style.
+    // Using w.Style would accumulate stale colours from the previous theme on
+    // every SetTheme call.
+    w.Style      = t.Input.Merge(w.callerStyle)
+    w.FocusStyle = t.InputFocus.Merge(w.callerFocusStyle)
 }
 ```
 
@@ -267,6 +294,7 @@ deepBlack := latte.ThemeDark.
 | `WithHeader(Style)` | `Style` | Canvas header region |
 | `WithFooter(Style)` | `Style` | Canvas footer / status bar |
 | `WithFocusBorder(Color)` | `Color` | Border colour when a descendant is focused |
+| `WithRoundedCorner(bool)` | `bool` | `Button` and `Border` use arc corners (`╭─╮/╰─╯`); incompatible styles silently ignored |
 | `WithDialog(Style)` | `Style` | `widget.Dialog` panel |
 | `WithDialogTitle(Style)` | `Style` | Title text inside a dialog |
 | `WithScrim(Style)` | `Style` | Full-screen backdrop behind dialogs |

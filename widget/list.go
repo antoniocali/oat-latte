@@ -39,6 +39,17 @@ type List struct {
 	// cursor is the rune drawn in the gutter next to the selected row.
 	// Defaults to ">". Set to "" to hide it entirely.
 	cursor string
+
+	// callerStyle and callerSelectedStyle preserve the styles set explicitly by
+	// the caller (via WithStyle / WithSelectedStyle) before any theme application.
+	// ApplyTheme always merges the current theme token with these originals so
+	// that switching themes fully replaces the previous theme's colours.
+	callerStyle         latte.Style
+	callerSelectedStyle latte.Style
+
+	// accentColor is derived from the theme's Accent token in ApplyTheme and
+	// used to colour the cursor glyph when the list is focused.
+	accentColor latte.Color
 }
 
 // NewList creates a List with the given items.
@@ -49,21 +60,20 @@ func NewList(items []ListItem) *List {
 		cursor:    ">",
 	}
 	l.EnsureID()
-	// Focus style: if List has a border, highlight it; otherwise the cursor
-	// and selected row are sufficient inline cues.
-	l.FocusStyle = latte.Style{
-		BorderFG: latte.ColorBrightCyan,
-	}
-	l.selectedStyle = latte.Style{
-		FG:   latte.ColorDefault,
-		BG:   latte.ColorBlue,
-		Bold: true,
-	}
+	// FocusStyle and selectedStyle are intentionally NOT pre-seeded with
+	// hardcoded colours here. ApplyTheme sets them from the active theme's
+	// tokens. Pre-seeding with hardcoded values would cause those non-zero
+	// fields to survive theme switches via Merge, blocking the new theme's
+	// colours from taking effect.
 	return l
 }
 
 // WithStyle sets the display style for this List.
-func (l *List) WithStyle(s latte.Style) *List { l.Style = s; return l }
+func (l *List) WithStyle(s latte.Style) *List {
+	l.Style = s
+	l.callerStyle = s
+	return l
+}
 
 // WithID sets a user-defined identifier on this component.
 func (l *List) WithID(id string) *List { l.ID = id; return l }
@@ -89,8 +99,32 @@ func (l *List) GetValue() interface{} {
 	return item.Value
 }
 
+// WithHAlign sets the horizontal alignment for this widget within a VBox slot.
+// No argument (or HAlignFill) resets to the default fill behaviour.
+func (l *List) WithHAlign(a ...oat.HAlign) *List {
+	l.BaseComponent.HAlign = oat.HAlignFill
+	if len(a) > 0 {
+		l.BaseComponent.HAlign = a[0]
+	}
+	return l
+}
+
+// WithVAlign sets the vertical alignment for this widget within an HBox slot.
+// No argument (or VAlignFill) resets to the default fill behaviour.
+func (l *List) WithVAlign(a ...oat.VAlign) *List {
+	l.BaseComponent.VAlign = oat.VAlignFill
+	if len(a) > 0 {
+		l.BaseComponent.VAlign = a[0]
+	}
+	return l
+}
+
 // WithSelectedStyle overrides the style for the highlighted item.
-func (l *List) WithSelectedStyle(s latte.Style) *List { l.selectedStyle = s; return l }
+func (l *List) WithSelectedStyle(s latte.Style) *List {
+	l.selectedStyle = s
+	l.callerSelectedStyle = s
+	return l
+}
 
 // WithOnSelect registers a callback when an item is confirmed (Enter pressed).
 func (l *List) WithOnSelect(fn func(int, ListItem)) *List { l.onSelect = fn; return l }
@@ -110,12 +144,15 @@ func (l *List) WithOnCursorChange(fn func(int, ListItem)) *List {
 func (l *List) WithOnDelete(fn func(int, ListItem)) *List { l.onDelete = fn; return l }
 
 // ApplyTheme applies theme tokens to the List.
-// The theme acts as the base; any style fields already set on the widget
-// take precedence.
+//
+// ApplyTheme always re-derives Style from the theme token merged with the
+// original callerStyle so that repeated calls (e.g. on theme switch) correctly
+// replace the previous theme's colours rather than accumulating stale values.
 func (l *List) ApplyTheme(t latte.Theme) {
-	l.Style = t.Text.Merge(l.Style)
-	l.FocusStyle = latte.Style{BorderFG: t.FocusBorder}.Merge(l.FocusStyle)
-	l.selectedStyle = t.ListSelected.Merge(l.selectedStyle)
+	l.Style = t.Text.Merge(l.callerStyle)
+	l.FocusStyle = latte.Style{BorderFG: t.FocusBorder}
+	l.selectedStyle = t.ListSelected.Merge(l.callerSelectedStyle)
+	l.accentColor = t.Accent.FG
 }
 
 // SetItems replaces the list contents.
@@ -206,8 +243,12 @@ func (l *List) Render(buf *oat.Buffer, region oat.Region) {
 		cursorWidth = 0
 	}
 
-	// Cursor style: accent when focused, dimmed when not.
-	cursorStyle := latte.Style{FG: latte.ColorBrightCyan, Bold: true}
+	// Cursor styles: accent when focused, dimmed when not.
+	cursorFG := l.accentColor
+	if cursorFG == latte.ColorDefault {
+		cursorFG = latte.ColorBrightCyan // safe fallback for ThemeDefault (ANSI-16)
+	}
+	cursorStyle := latte.Style{FG: cursorFG, Bold: true}
 	if !l.IsFocused() {
 		cursorStyle = latte.Style{FG: latte.ColorBrightBlack}
 	}

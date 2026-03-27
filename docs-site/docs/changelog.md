@@ -8,6 +8,97 @@ All notable changes to the oat-latte framework are listed here, newest first.
 
 ---
 
+## v0.2.8
+
+**Cross-axis alignment · `RoundedCorner` theme flag · `callerStyle` pattern**
+
+### Added
+
+- **`oat.HAlign`** — horizontal-axis alignment type for widgets inside a `VBox`:
+  - `HAlignFill` (0, default) — fill the full allocated width; **zero-value, all existing code unchanged**.
+  - `HAlignLeft` — shrink to natural width, pin to the left.
+  - `HAlignCenter` — shrink to natural width, centre horizontally.
+  - `HAlignRight` — shrink to natural width, pin to the right.
+
+- **`oat.VAlign`** — vertical-axis alignment type for widgets inside an `HBox`:
+  - `VAlignFill` (0, default) — fill the full allocated height; **zero-value, all existing code unchanged**.
+  - `VAlignTop` — shrink to natural height, pin to the top.
+  - `VAlignMiddle` — shrink to natural height, centre vertically.
+  - `VAlignBottom` — shrink to natural height, pin to the bottom.
+
+- **`oat.AlignProvider`** interface — satisfied automatically by any component that embeds `BaseComponent`:
+  ```go
+  type AlignProvider interface {
+      GetHAlign() HAlign
+      GetVAlign() VAlign
+  }
+  ```
+
+- **`BaseComponent.HAlign` / `BaseComponent.VAlign`** fields — carry the alignment preference for a widget. Zero values mean "use parent box default" (fill/stretch).
+
+- **`BaseComponent.GetHAlign()` / `GetVAlign()`** — implement `AlignProvider`.
+
+- **Concrete `WithHAlign` / `WithVAlign` fluent builders on every built-in widget** — `Text`, `Title`, `Button`, `CheckBox`, `EditText`, `List`, `ComponentList`, `Label`, `ProgressBar`, `StatusBar`, `Divider`. Each returns the concrete widget type so alignment can be set inline without a type assertion:
+
+  ```go
+  saveBtn   := widget.NewButton("Save",   fn).WithHAlign(oat.HAlignRight)
+  cancelBtn := widget.NewButton("Cancel", fn).WithHAlign(oat.HAlignLeft)
+  lbl       := widget.NewText("note").WithVAlign(oat.VAlignBottom)
+  ```
+
+  Each method is variadic (`a ...oat.HAlign`) — calling with no argument resets to `HAlignFill` / `VAlignFill`. Internally they delegate to `BaseComponent.HAlign` / `BaseComponent.VAlign`; custom widgets that embed `BaseComponent` but have not yet added their own builders can set the field directly: `myWidget.BaseComponent.HAlign = oat.HAlignRight`. `NotificationManager` and `Dialog` are intentionally excluded — they are never placed directly in a `VBox`/`HBox`.
+
+- **`VBox.WithHAlign(a ...oat.HAlign) *VBox`** — sets a box-wide default horizontal alignment for all children that do not declare their own.
+
+- **`HBox.WithVAlign(a ...oat.VAlign) *HBox`** — sets a box-wide default vertical alignment for all children that do not declare their own.
+
+- **`layout.AlignChild`** — a wrapper component that attaches explicit alignment overrides to any child. Takes precedence over both the child's own `BaseComponent` alignment and the box-wide default.
+
+  ```go
+  // Constructor:
+  func NewAlignChild(child oat.Component, h oat.HAlign, v oat.VAlign) *AlignChild
+
+  // Usage:
+  vbox := layout.NewVBox(
+      layout.NewAlignChild(saveBtn,   oat.HAlignRight, oat.VAlignFill),
+      layout.NewAlignChild(cancelBtn, oat.HAlignLeft,  oat.VAlignFill),
+  )
+  ```
+
+  `AlignChild` implements `oat.Layout` (via `Children()`), so theme propagation and focus collection recurse into the wrapped component automatically. It is **not** a `FlexSpacer` — wrap it with `AddFlexChild` or `NewFlexChild` when flex behaviour is also needed.
+
+- **`latte.Theme.RoundedCorner bool`** — new field on `Theme`. All five built-in themes set `RoundedCorner: true`. When `ApplyTheme` is called, `Button` and `Border` widgets automatically adopt arc corners (`╭─╮/╰─╯`) without any per-widget configuration.
+
+- **`(Theme).WithRoundedCorner(bool) Theme`** — builder method to set `RoundedCorner` on a derived theme. Returns a new `Theme` by value; the originals are never mutated.
+
+### Changed (non-breaking)
+
+- `VBox.Render` — resolves each child's effective `HAlign` before assigning its region. When `HAlignFill`, behaviour is identical to before (unchanged code path). For non-fill values the child is re-measured and positioned within its row.
+- `HBox.Render` — same for `VAlign`.
+
+- **`Border.WithRoundedCorner`** — completely reworked. Previously mutated `Style.Border` at call time and panicked on incompatible styles. Now:
+  - Stores the intent in an internal `roundedCorner bool` field; **does not mutate `Style.Border`**.
+  - The effective corner shape is resolved at **render time**: `BorderSingle ↔ BorderRounded` is toggled based on the field; incompatible styles (`BorderDouble`, `BorderThick`, `BorderDashed`) are **silently left unchanged** — **no panic**.
+  - Once called, the explicit preference overrides `theme.RoundedCorner` on all future `ApplyTheme` calls. `WithRoundedCorner(false)` opts out even when `theme.RoundedCorner` is `true`.
+  - `ApplyTheme` syncs `roundedCorner` from `t.RoundedCorner` **only** when `WithRoundedCorner` has never been called on this instance (bidirectional — both enabling and disabling work correctly on theme switch).
+
+- **`Button.WithRoundedCorner`** — same rework as `Border`:
+  - Stores intent in `roundedCorner bool` / `roundedCornerSet bool` fields; does not mutate `Style.Border`.
+  - Incompatible styles are **silently ignored** — **no panic**.
+  - `ApplyTheme` syncs from `t.RoundedCorner` when `!roundedCornerSet`.
+  - `fmt` import removed from `widget/button.go` (was only used for the now-deleted panic message).
+
+- **`callerStyle` pattern** — all built-in widgets that expose `WithStyle` now store the caller's original intent in a `callerStyle` field and use **that** as the `Merge` base in `ApplyTheme`. This prevents stale colours from a previous theme accumulating in `w.Style` and blocking a new theme from fully replacing them on `SetTheme` calls after the first.
+
+### Resolution order (per child in each box)
+
+1. `AlignChild` wrapper — highest priority.
+2. `AlignProvider` on the child itself (e.g. `BaseComponent.HAlign`/`VAlign` set to a non-fill value).
+3. Box-wide default (`WithHAlign` / `WithVAlign`).
+4. `HAlignFill` / `VAlignFill` — full-stretch fallback; identical to the pre-v0.2.8 behaviour.
+
+---
+
 ## v0.2.7
 
 _(v0.2.6 was skipped — these changes were shipped directly as v0.2.7.)_
@@ -172,8 +263,8 @@ _(v0.2.2 was skipped — these changes were shipped directly as v0.2.3.)_
 ### Added
 
 - `layout.NewFlexChild(child oat.Component, weight ...int) *FlexChild` — wraps any `Component` as a flex slot so it can be passed to the variadic `NewVBox` / `NewHBox` constructors without a separate `AddFlexChild` call. Weight defaults to `1`; minimum effective weight is `1`. `FlexChild` implements `oat.Layout` via `Children()` so theme propagation and focus collection recurse into the wrapped component automatically.
-- `(*Button).WithRoundedCorner(bool)` — draws arc corners (`╭╮╰╯`) on the button border when `true`. Panics at render time if the effective border style is `BorderDouble`, `BorderThick`, or `BorderDashed`. `WithStyle` also panics immediately at construction time for those styles.
-- `(*Button).WithStyle(latte.Style)` — new builder; validates that the border style is compatible (`BorderNone`, `BorderExplicitNone`, `BorderSingle`, or `BorderRounded`) and panics otherwise.
+- `(*Button).WithRoundedCorner(bool)` — draws arc corners (`╭╮╰╯`) on the button border when `true`. Incompatible border styles (`BorderDouble`, `BorderThick`, `BorderDashed`) are silently ignored. *(Panic behaviour was removed in v0.2.8.)*
+- `(*Button).WithStyle(latte.Style)` — new builder; accepts any border style.
 - `(*Label).WithHighlight(bool)` — controls whether chip badges render with their background colour fill. `false` keeps the foreground colour and text attributes but strips the background, useful for minimal or transparent UIs. Default is `true` (existing behaviour).
 
 ### Changed
@@ -224,7 +315,7 @@ _(v0.2.2 was skipped — these changes were shipped directly as v0.2.3.)_
 
 ### Added
 
-- `(*Border).WithRoundedCorner(bool)` — switches the border style to `BorderRounded` (`╭─╮│╰─╯`) when `true`, restores `BorderSingle` when `false`. Panics with an explicit message if called with `true` on `BorderDouble`, `BorderThick`, or `BorderDashed` (Unicode provides arc corner codepoints only for light-weight strokes).
+- `(*Border).WithRoundedCorner(bool)` — switches the effective border corner style to arc (`╭─╮│╰─╯`) when `true`. Stores intent in an internal field; does not mutate `Style.Border`. Incompatible styles (`BorderDouble`, `BorderThick`, `BorderDashed`) are silently ignored. *(Original panic behaviour was removed in v0.2.8.)*
 
 ---
 
@@ -241,6 +332,6 @@ _(v0.2.2 was skipped — these changes were shipped directly as v0.2.3.)_
 - Widget library: `Text`, `Title`, `Button`, `CheckBox`, `EditText` (single- and multi-line), `List`, `Label`, `ProgressBar`, `StatusBar`, `NotificationManager`, `Dialog`.
 - Style system with `Style.Merge`, border sentinels (`BorderNone`, `BorderExplicitNone`, `BorderSingle`, `BorderRounded`, `BorderDouble`, `BorderThick`, `BorderDashed`), and true-color support (`latte.RGB`, `latte.Hex`).
 - Five built-in themes: `ThemeDefault`, `ThemeDark`, `ThemeLight`, `ThemeDracula`, `ThemeNord`.
-- `Canvas` with `WithTheme`, `WithHeader`, `WithBody`, `WithAutoStatusBar`, `WithPrimary`, `WithGlobalKeyBinding`, `SetTheme`, `ShowDialog`, `HideDialog`, `FocusByRef`, `InvalidateLayout`.
+- `Canvas` with `WithTheme`, `WithHeader`, `WithBody`, `WithAutoStatusBar`, `WithPrimary`, `WithGlobalKeyBinding`, `SetTheme`, `GetTheme`, `ShowDialog`, `HideDialog`, `FocusByRef`, `InvalidateLayout`.
 - Cooperative focus system with Tab / Shift+Tab cycling, `FocusGuard` for context-sensitive subtrees, and programmatic focus via `FocusByRef`.
 - Three example apps: `tasklist`, `notes`, `kanban`.

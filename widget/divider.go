@@ -162,6 +162,12 @@ type Divider struct {
 	// vAnchor positions the visible portion on the V-axis.
 	// Only meaningful for AxisVertical when size is not Fill.
 	vAnchor oat.VAnchor
+
+	// callerStyle preserves the style set explicitly by the caller (via
+	// WithStyle) before any theme application. ApplyTheme always merges the
+	// current theme token with this original so that switching themes fully
+	// replaces the previous theme's colours rather than leaving stale values.
+	callerStyle latte.Style
 }
 
 // NewDivider returns a Divider with the given axis and sensible defaults.
@@ -195,11 +201,35 @@ func (d *Divider) WithID(id string) *Divider { d.ID = id; return d }
 
 // WithStyle overrides the visual style (FG color, BG color, etc.).
 // Fields that remain zero are filled in by ApplyTheme.
-func (d *Divider) WithStyle(s latte.Style) *Divider { d.Style = s; return d }
+func (d *Divider) WithStyle(s latte.Style) *Divider {
+	d.Style = s
+	d.callerStyle = s
+	return d
+}
 
 // WithRune replaces the default line rune.
 // Examples: '═' (double horizontal), '┄' (dashed), '╍' (heavy dashed).
 func (d *Divider) WithRune(r rune) *Divider { d.lineRune = r; return d }
+
+// WithHAlign sets the horizontal alignment for this widget within a VBox slot.
+// No argument (or HAlignFill) resets to the default fill behaviour.
+func (d *Divider) WithHAlign(a ...oat.HAlign) *Divider {
+	d.BaseComponent.HAlign = oat.HAlignFill
+	if len(a) > 0 {
+		d.BaseComponent.HAlign = a[0]
+	}
+	return d
+}
+
+// WithVAlign sets the vertical alignment for this widget within an HBox slot.
+// No argument (or VAlignFill) resets to the default fill behaviour.
+func (d *Divider) WithVAlign(a ...oat.VAlign) *Divider {
+	d.BaseComponent.VAlign = oat.VAlignFill
+	if len(a) > 0 {
+		d.BaseComponent.VAlign = a[0]
+	}
+	return d
+}
 
 // WithMaxSize controls how much of the allocated space is occupied by the
 // visible rule, and where it is anchored within that space.
@@ -242,31 +272,39 @@ func (d *Divider) WithMaxSizeV(size DividerSize, anchor ...oat.VAnchor) *Divider
 // ── Theme ─────────────────────────────────────────────────────────────────────
 
 // ApplyTheme maps the Muted token onto the divider so it renders as
-// de-emphasised structural chrome. Caller-set style fields win via Merge.
+// de-emphasised structural chrome.
+//
+// ApplyTheme always re-derives Style from the theme token merged with the
+// original callerStyle so that repeated calls (e.g. on theme switch) correctly
+// replace the previous theme's colours rather than accumulating stale values.
 func (d *Divider) ApplyTheme(t latte.Theme) {
-	d.Style = t.Muted.Merge(d.Style)
+	d.Style = t.Muted.Merge(d.callerStyle)
 }
 
 // ── Component interface ───────────────────────────────────────────────────────
 
 // Measure returns the desired size of the divider.
 //
-// The divider always claims a fixed 1 cell on its secondary axis and the full
-// available space on its primary axis (so it fills the container and the
-// parent can place siblings either side of it):
+// Each axis follows a simple rule:
 //
-//	AxisHorizontal → Width=MaxWidth (fill), Height=1
-//	AxisVertical   → Width=1, Height=MaxHeight (fill)
-//
-// When the relevant constraint is unconstrained (-1) a fallback of 1 is used.
+//   - Primary axis (the direction the rule runs): fill the available space.
+//     Returns MaxWidth for AxisHorizontal, MaxHeight for AxisVertical.
+//     Falls back to 1 when the relevant constraint is unconstrained (-1).
+//   - Secondary axis (perpendicular to the rule): always 1 cell.
+//     A vertical rule is 1 cell wide; a horizontal rule is 1 row tall.
+//     The secondary dimension is never inflated to the available space during
+//     Measure so that parent containers (e.g. HBox containing a VDivider
+//     inside a VBox) report the correct natural height rather than expanding
+//     to fill all available space.
 func (d *Divider) Measure(c oat.Constraint) oat.Size {
 	switch d.axis {
 	case AxisVertical:
-		h := c.MaxHeight
-		if h < 0 {
-			h = 1
-		}
-		return oat.Size{Width: 1, Height: h}
+		// Width: always 1 cell (secondary axis).
+		// Height: 1 (natural/minimum). The parent HBox allocates the actual
+		// height at render time; inflating Measure to MaxHeight here would cause
+		// the enclosing VBox to reserve the full column height for any row
+		// containing a VDivider, crowding out the rows below it.
+		return oat.Size{Width: 1, Height: 1}
 	default: // AxisHorizontal
 		w := c.MaxWidth
 		if w < 0 {

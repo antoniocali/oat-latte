@@ -85,38 +85,51 @@ func (s DialogSize) resolve(available int) int {
 // The dialog is always centred in the available screen area.
 type Dialog struct {
 	oat.BaseComponent
-	child      oat.Component
-	titleStyle latte.Style
-	scrimStyle latte.Style // populated by ApplyTheme; defaults to BG: ColorDefault
+	child       oat.Component
+	titleStyle  latte.Style
+	titleAnchor oat.Anchor  // horizontal position of the title (default AnchorCenter)
+	scrimStyle  latte.Style // populated by ApplyTheme; defaults to BG: ColorDefault
 
 	// sizeW / sizeH control the maximum terminal cells the dialog may occupy.
 	// They are resolved at Render time so percent-based sizes track terminal
 	// resizes automatically.
 	sizeW DialogSize
 	sizeH DialogSize
+
+	// callerStyle preserves the style set by the caller (via WithStyle) before
+	// any theme application. ApplyTheme always merges the current theme token
+	// with this original so that switching themes fully replaces the previous
+	// theme's colours rather than accumulating stale values.
+	callerStyle latte.Style
 }
 
 // NewDialog constructs a Dialog with the given title.
+// The title is centred in the border by default.
 // Call WithStyle to set border/colour options, or leave them to ApplyTheme.
 func NewDialog(title string) *Dialog {
 	d := &Dialog{
-		sizeW: DialogFixed(60),
-		sizeH: DialogFixed(20),
+		sizeW:       DialogFixed(60),
+		sizeH:       DialogFixed(20),
+		titleAnchor: oat.AnchorCenter,
 	}
 	d.Title = title
-	if d.Style.Border == latte.BorderNone {
-		d.Style.Border = latte.BorderRounded
-	}
+	// Default to rounded border so the dialog has a visible frame when
+	// ApplyTheme has not yet been called. This is stored in callerStyle so
+	// it participates in the Merge as the caller override (lowest precedence)
+	// and can be overridden by the theme's Dialog token on every ApplyTheme call.
+	d.callerStyle.Border = latte.BorderRounded
+	d.Style = d.callerStyle
 	return d
 }
 
 // WithStyle sets the visual style for the dialog border and background.
 // Fields that remain zero will be filled in by ApplyTheme.
 func (d *Dialog) WithStyle(s latte.Style) *Dialog {
-	d.Style = s
-	if d.Style.Border == latte.BorderNone {
-		d.Style.Border = latte.BorderRounded
+	if s.Border == latte.BorderNone {
+		s.Border = latte.BorderRounded
 	}
+	d.Style = s
+	d.callerStyle = s
 	return d
 }
 
@@ -132,9 +145,17 @@ func (d *Dialog) WithID(id string) *Dialog {
 	return d
 }
 
-// WithTitle sets (or overrides) the dialog's title text.
-func (d *Dialog) WithTitle(title string) *Dialog {
+// WithTitle sets (or overrides) the dialog's title text and optionally its
+// horizontal anchor within the border. The default anchor is AnchorCenter.
+//
+//	dlg.WithTitle("Confirm")                         // centred (default)
+//	dlg.WithTitle("Confirm", oat.AnchorLeft)         // left-aligned
+//	dlg.WithTitle("Confirm", oat.AnchorRight)        // right-aligned
+func (d *Dialog) WithTitle(title string, anchor ...oat.Anchor) *Dialog {
 	d.Title = title
+	if len(anchor) > 0 {
+		d.titleAnchor = anchor[0]
+	}
 	return d
 }
 
@@ -159,9 +180,12 @@ func (d *Dialog) WithSize(w, h DialogSize) *Dialog {
 }
 
 // ApplyTheme applies Dialog, DialogTitle, and Scrim tokens from the active theme.
-// Theme acts as base; fields already set on the dialog take precedence via Merge.
+// Theme acts as base; fields already set on the dialog (via WithStyle) take
+// precedence via Merge. ApplyTheme always re-derives Style from the theme token
+// merged with the original callerStyle so that switching themes fully replaces
+// the previous theme's colours rather than accumulating stale values.
 func (d *Dialog) ApplyTheme(t latte.Theme) {
-	d.Style = t.Dialog.Merge(d.Style)
+	d.Style = t.Dialog.Merge(d.callerStyle)
 	d.titleStyle = t.DialogTitle
 	d.scrimStyle = t.Scrim
 }
@@ -239,7 +263,7 @@ func (d *Dialog) Render(buf *oat.Buffer, region oat.Region) {
 	sub.FillBG(d.Style)
 
 	// 4. Draw border + title.
-	sub.DrawBorderTitle(d.Style.Border, d.Title, d.titleStyle, d.Style, oat.AnchorLeft)
+	sub.DrawBorderTitle(d.Style.Border, d.Title, d.titleStyle, d.Style, d.titleAnchor)
 
 	// 5. Render child inside the border.
 	if d.child != nil {

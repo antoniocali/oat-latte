@@ -41,17 +41,24 @@ type EditText struct {
 	onChange func(text string)
 	onSave   func(text string)
 	onCancel func()
+
+	// callerStyle and callerFocusStyle preserve the styles set by the caller
+	// (via WithStyle) before any theme application. ApplyTheme always merges
+	// the current theme token with these originals so that switching themes
+	// fully replaces the previous theme's colours rather than accumulating
+	// stale values from the prior theme.
+	callerStyle      latte.Style
+	callerFocusStyle latte.Style
 }
 
 // NewEditText creates a single-line text input.
 func NewEditText() *EditText {
 	e := &EditText{lines: []string{""}}
 	e.EnsureID()
-	// Focus style: highlight the border cyan on focus; the blinking tcell
-	// cursor is the primary focus indicator so we don't add Reverse here.
-	e.FocusStyle = latte.Style{
-		BorderFG: latte.ColorBrightCyan,
-	}
+	// FocusStyle is intentionally NOT pre-seeded here.
+	// ApplyTheme sets it from the active theme's InputFocus token.
+	// Pre-seeding with hardcoded values would cause them to survive theme
+	// switches via Merge, blocking the new theme's colours from taking effect.
 	return e
 }
 
@@ -63,7 +70,7 @@ func NewMultiLineEditText() *EditText {
 }
 
 // WithStyle sets the display style for this EditText.
-func (e *EditText) WithStyle(s latte.Style) *EditText { e.Style = s; return e }
+func (e *EditText) WithStyle(s latte.Style) *EditText { e.Style = s; e.callerStyle = s; return e }
 
 // WithID sets a user-defined identifier on this component.
 // Use this to retrieve the widget's value later via Canvas.GetValue(id).
@@ -71,6 +78,26 @@ func (e *EditText) WithID(id string) *EditText { e.ID = id; return e }
 
 // GetValue implements oat.ValueGetter. Returns the current text as a string.
 func (e *EditText) GetValue() interface{} { return e.GetText() }
+
+// WithHAlign sets the horizontal alignment for this widget within a VBox slot.
+// No argument (or HAlignFill) resets to the default fill behaviour.
+func (e *EditText) WithHAlign(a ...oat.HAlign) *EditText {
+	e.BaseComponent.HAlign = oat.HAlignFill
+	if len(a) > 0 {
+		e.BaseComponent.HAlign = a[0]
+	}
+	return e
+}
+
+// WithVAlign sets the vertical alignment for this widget within an HBox slot.
+// No argument (or VAlignFill) resets to the default fill behaviour.
+func (e *EditText) WithVAlign(a ...oat.VAlign) *EditText {
+	e.BaseComponent.VAlign = oat.VAlignFill
+	if len(a) > 0 {
+		e.BaseComponent.VAlign = a[0]
+	}
+	return e
+}
 
 // WithPlaceholder sets placeholder text shown when the input is empty.
 func (e *EditText) WithPlaceholder(p string) *EditText { e.placeholder = p; return e }
@@ -101,10 +128,13 @@ func (e *EditText) WithOnCancel(fn func()) *EditText { e.onCancel = fn; return e
 
 // ApplyTheme applies theme tokens to the EditText.
 // The theme acts as the base; any style fields already set on the widget
-// (e.g. Border: BorderExplicitNone passed to NewEditText) take precedence.
+// (e.g. Border: BorderExplicitNone passed via WithStyle) take precedence.
+// ApplyTheme always re-derives Style from the theme token merged with the
+// original callerStyle so that switching themes fully replaces the previous
+// theme's colours rather than accumulating stale values.
 func (e *EditText) ApplyTheme(t latte.Theme) {
-	e.Style = t.Input.Merge(e.Style)
-	e.FocusStyle = t.InputFocus.Merge(e.FocusStyle)
+	e.Style = t.Input.Merge(e.callerStyle)
+	e.FocusStyle = t.InputFocus.Merge(e.callerFocusStyle)
 	e.hintStyle = t.Muted
 }
 

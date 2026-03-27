@@ -16,6 +16,12 @@ type StatusBar struct {
 	oat.BaseComponent
 	bindings    []oat.KeyBinding
 	accentColor latte.Color // derived from theme Accent token in ApplyTheme
+
+	// callerStyle preserves the style set by the caller (via WithStyle) before
+	// any theme application. ApplyTheme always merges the current theme token
+	// with this original so that switching themes fully replaces the previous
+	// theme's colours rather than accumulating stale values.
+	callerStyle latte.Style
 }
 
 // NewStatusBar creates a StatusBar.
@@ -26,10 +32,30 @@ func NewStatusBar() *StatusBar {
 }
 
 // WithStyle sets the display style for this StatusBar.
-func (s *StatusBar) WithStyle(st latte.Style) *StatusBar { s.Style = st; return s }
+func (s *StatusBar) WithStyle(st latte.Style) *StatusBar { s.Style = st; s.callerStyle = st; return s }
 
 // WithID sets a user-defined identifier on this component.
 func (s *StatusBar) WithID(id string) *StatusBar { s.ID = id; return s }
+
+// WithHAlign sets the horizontal alignment for this widget within a VBox slot.
+// No argument (or HAlignFill) resets to the default fill behaviour.
+func (s *StatusBar) WithHAlign(a ...oat.HAlign) *StatusBar {
+	s.BaseComponent.HAlign = oat.HAlignFill
+	if len(a) > 0 {
+		s.BaseComponent.HAlign = a[0]
+	}
+	return s
+}
+
+// WithVAlign sets the vertical alignment for this widget within an HBox slot.
+// No argument (or VAlignFill) resets to the default fill behaviour.
+func (s *StatusBar) WithVAlign(a ...oat.VAlign) *StatusBar {
+	s.BaseComponent.VAlign = oat.VAlignFill
+	if len(a) > 0 {
+		s.BaseComponent.VAlign = a[0]
+	}
+	return s
+}
 
 // SetBindings replaces the displayed key bindings. Called by Canvas on focus change.
 func (s *StatusBar) SetBindings(bindings []oat.KeyBinding) {
@@ -37,8 +63,10 @@ func (s *StatusBar) SetBindings(bindings []oat.KeyBinding) {
 }
 
 // ApplyTheme applies theme tokens to the StatusBar.
+// The theme acts as the base; any style fields explicitly set by the caller
+// (via WithStyle) take precedence via Merge.
 func (s *StatusBar) ApplyTheme(t latte.Theme) {
-	s.Style = t.Footer
+	s.Style = t.Footer.Merge(s.callerStyle)
 	s.accentColor = t.Accent.FG
 }
 
