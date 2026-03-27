@@ -353,14 +353,14 @@ var ThemeLight = Theme{
 	Input:      Style{Border: BorderSingle, BorderFG: LightBorder, FG: LightText},
 	InputFocus: Style{BorderFG: LightAccent},
 
-	ListSelected:  Style{FG: LightAccent, Bold: true},
+	ListSelected:  Style{FG: LightAccent, BG: LightBgSelected, Bold: true},
 	Button:        Style{FG: LightText, Border: BorderSingle, BorderFG: LightBorder},
 	ButtonFocus:   Style{Reverse: true, BorderFG: LightAccent},
 	CheckBox:      Style{FG: LightSuccess},
 	CheckBoxFocus: Style{Reverse: true, Border: BorderSingle, BorderFG: LightAccent},
 
-	Header: Style{FG: LightAccent, BG: LightBg, Bold: true},
-	Footer: Style{FG: LightMuted, BG: LightBg},
+	Header: Style{FG: LightAccent, BG: LightBgHeader, Bold: true},
+	Footer: Style{FG: LightMuted, BG: LightBgHeader},
 
 	FocusBorder: LightAccent,
 
